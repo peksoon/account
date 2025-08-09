@@ -35,6 +35,7 @@ func main() {
 	outAccountHandler := &handlers.OutAccountHandler{DB: db, KeywordDB: db}
 	inAccountHandler := &handlers.InAccountHandler{DB: db, KeywordDB: db}
 	statisticsHandler := &handlers.StatisticsHandler{DB: db}
+	categoryBudgetHandler := handlers.NewCategoryBudgetHandler(db)
 
 	// CORS 및 로깅 미들웨어
 	enableCorsAndLogging := func(next http.Handler) http.Handler {
@@ -91,6 +92,7 @@ func main() {
 
 	// 지출 관리 API (새로운 구조)
 	http.Handle("/v2/out-account/insert", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.InsertOutAccountHandler)))
+	http.Handle("/v2/out-account/insert-with-budget", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.InsertOutAccountWithBudgetHandler)))
 	http.Handle("/v2/out-account", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.GetOutAccountByDateHandler)))
 	http.Handle("/v2/month-out-account", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.GetOutAccountByMonthHandler)))
 	http.Handle("/v2/out-account/update", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.UpdateOutAccountHandler)))
@@ -106,6 +108,15 @@ func main() {
 	// 통계 API
 	http.Handle("/statistics", enableCorsAndLogging(http.HandlerFunc(statisticsHandler.GetStatisticsHandler)))
 	http.Handle("/statistics/category-keywords", enableCorsAndLogging(http.HandlerFunc(statisticsHandler.GetCategoryKeywordStatisticsHandler)))
+
+	// 카테고리 기준치 관리 API
+	http.Handle("/category-budgets", enableCorsAndLogging(http.HandlerFunc(categoryBudgetHandler.GetCategoryBudgetsHandler)))
+	http.Handle("/category-budgets/create", enableCorsAndLogging(http.HandlerFunc(categoryBudgetHandler.CreateCategoryBudgetHandler)))
+	http.Handle("/category-budgets/update", enableCorsAndLogging(http.HandlerFunc(categoryBudgetHandler.UpdateCategoryBudgetHandler)))
+	http.Handle("/category-budgets/update-monthly", enableCorsAndLogging(http.HandlerFunc(categoryBudgetHandler.UpdateMonthlyBudgetHandler)))
+	http.Handle("/category-budgets/update-yearly", enableCorsAndLogging(http.HandlerFunc(categoryBudgetHandler.UpdateYearlyBudgetHandler)))
+	http.Handle("/category-budgets/delete", enableCorsAndLogging(http.HandlerFunc(categoryBudgetHandler.DeleteCategoryBudgetHandler)))
+	http.Handle("/category-budgets/usage", enableCorsAndLogging(http.HandlerFunc(categoryBudgetHandler.GetBudgetUsageHandler)))
 
 	// Health Check API
 	http.Handle("/health", enableCorsAndLogging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

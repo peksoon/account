@@ -65,6 +65,10 @@ func InitDB(dbPath string) (*DB, error) {
 		return nil, err
 	}
 
+	if err := db.createCategoryBudgetTable(); err != nil {
+		return nil, err
+	}
+
 	return db, nil
 }
 
@@ -432,4 +436,26 @@ func (db *DB) addKeywordIsActiveColumn() {
 		alterQuery := `ALTER TABLE keywords ADD COLUMN is_active BOOLEAN DEFAULT 1`
 		db.Conn.Exec(alterQuery)
 	}
+}
+
+// 카테고리 기준치 테이블 생성
+func (db *DB) createCategoryBudgetTable() error {
+	createCategoryBudgetTable := `
+    CREATE TABLE IF NOT EXISTS category_budgets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category_id INTEGER NOT NULL,
+        user_name VARCHAR(255) DEFAULT '', 
+        monthly_budget INTEGER DEFAULT 0,
+        yearly_budget INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES categories(id),
+        UNIQUE(category_id, user_name)
+    );`
+
+	_, err := db.Conn.Exec(createCategoryBudgetTable)
+	if err != nil {
+		return fmt.Errorf("카테고리 기준치 테이블 생성 오류: %v", err)
+	}
+	return nil
 }

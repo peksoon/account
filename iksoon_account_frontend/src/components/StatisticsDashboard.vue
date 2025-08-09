@@ -9,6 +9,12 @@
 
             <!-- 필터 컨트롤 -->
             <div class="flex flex-col sm:flex-row gap-4 mt-4 lg:mt-0">
+                <el-select v-model="selectedUser" @change="handleUserChange" class="w-full sm:w-40"
+                    placeholder="사용자 선택">
+                    <el-option label="전체" value="" />
+                    <el-option v-for="user in users" :key="user.id" :label="user.name" :value="user.name" />
+                </el-select>
+
                 <el-select v-model="selectedType" @change="handleTypeChange" class="w-full sm:w-40">
                     <el-option label="지출" value="out" />
                     <el-option label="수입" value="in" />
@@ -113,7 +119,7 @@
                                 <div class="flex items-center justify-between">
                                     <span class="font-medium text-gray-900">{{ category.category_name }}</span>
                                     <span class="font-bold text-gray-800">{{ formatMoney(category.total_amount)
-                                    }}원</span>
+                                        }}원</span>
                                 </div>
                                 <div class="flex items-center justify-between mt-1">
                                     <span class="text-sm text-gray-500">{{ category.count }}건</span>
@@ -134,6 +140,63 @@
                 <div v-if="sortedCategories.length === 0" class="empty-state">
                     <Folder class="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <p class="text-gray-500">해당 기간에 데이터가 없습니다</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 기준치 정보 섹션 (지출일 때만 표시) -->
+        <div v-if="selectedType === 'out' && selectedUser && budgetUsages && budgetUsages.length > 0" class="mb-8">
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">📊 기준치 사용량</h2>
+                    <span class="text-sm text-gray-500">{{ selectedUser }}님의 기준치 현황</span>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div v-for="budget in budgetUsages" :key="budget.category_id"
+                        class="budget-card p-4 border border-gray-200 rounded-lg" :class="{
+                            'border-red-300 bg-red-50': budget.is_monthly_over || budget.is_yearly_over,
+                            'border-yellow-300 bg-yellow-50': !budget.is_monthly_over && !budget.is_yearly_over && isNearLimit(budget),
+                            'border-green-300 bg-green-50': !budget.is_monthly_over && !budget.is_yearly_over && !isNearLimit(budget)
+                        }">
+                        <h3 class="font-semibold text-gray-800 mb-3">{{ budget.category_name }}</h3>
+                        <BudgetUsageDisplay :usage="budget" />
+                    </div>
+                </div>
+
+                <!-- 전체 기준치 요약 -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <p class="text-sm text-gray-600">전체 월 기준치</p>
+                            <p class="text-lg font-bold text-blue-600">{{ formatMoney(totalMonthlyBudget) }}원</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm text-gray-600">전체 월 사용량</p>
+                            <p class="text-lg font-bold"
+                                :class="totalMonthlyUsed > totalMonthlyBudget ? 'text-red-600' : 'text-green-600'">
+                                {{ formatMoney(totalMonthlyUsed) }}원
+                            </p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm text-gray-600">초과 카테고리</p>
+                            <p class="text-lg font-bold text-red-600">{{ overBudgetCount }}개</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 기준치 설정 안내 (지출이고 사용자가 선택됐지만 기준치가 없는 경우) -->
+        <div v-if="selectedType === 'out' && selectedUser && (!budgetUsages || budgetUsages.length === 0)" class="mb-8">
+            <div class="card">
+                <div class="text-center py-8">
+                    <Calculator class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">기준치가 설정되지 않았습니다</h3>
+                    <p class="text-gray-500 mb-4">카테고리별 기준치를 설정하여 지출을 관리해보세요.</p>
+                    <el-button type="primary" @click="$emit('open-budget-manager')">
+                        기준치 설정하기
+                    </el-button>
                 </div>
             </div>
         </div>
@@ -182,6 +245,7 @@ import {
     Folder
 } from 'lucide-vue-next';
 import { ElMessage } from 'element-plus';
+import BudgetUsageDisplay from './BudgetUsageDisplay.vue';
 import { Doughnut } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -190,6 +254,7 @@ import {
     Legend
 } from 'chart.js';
 import { useStatisticsStore } from '../stores/statisticsStore';
+import { useUserStore } from '../stores/userStore';
 
 // Chart.js 등록
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -203,13 +268,17 @@ export default {
         Calculator,
         PieChart,
         Folder,
-        Doughnut
+        Doughnut,
+        BudgetUsageDisplay
     },
+    emits: ['close', 'open-budget-manager'],
     setup() {
         const statisticsStore = useStatisticsStore();
+        const userStore = useUserStore();
 
         const selectedType = ref('out');
         const selectedPeriod = ref('month');
+        const selectedUser = ref('');
         const customStartDate = ref(null);
         const customEndDate = ref(null);
         const sortOrder = ref('desc');
@@ -219,6 +288,8 @@ export default {
 
         const statistics = computed(() => statisticsStore.statistics);
         const keywordStatistics = computed(() => statisticsStore.keywordStatistics);
+        const users = computed(() => userStore.users || []);
+        const budgetUsages = computed(() => statistics.value?.budget_usages || []);
 
         // 정렬된 카테고리
         const sortedCategories = computed(() => {
@@ -345,6 +416,25 @@ export default {
             return new Intl.NumberFormat('ko-KR').format(amount);
         };
 
+        // 기준치 관련 computed
+        const totalMonthlyBudget = computed(() => {
+            return budgetUsages.value.reduce((total, usage) => total + (usage.monthly_budget || 0), 0);
+        });
+
+        const totalMonthlyUsed = computed(() => {
+            return budgetUsages.value.reduce((total, usage) => total + (usage.monthly_used || 0), 0);
+        });
+
+        const overBudgetCount = computed(() => {
+            return budgetUsages.value.filter(usage => usage.is_monthly_over || usage.is_yearly_over).length;
+        });
+
+        // 기준치 근접 여부 확인
+        const isNearLimit = (budget) => {
+            return (budget.monthly_budget > 0 && budget.monthly_percent >= 80) ||
+                (budget.yearly_budget > 0 && budget.yearly_percent >= 80);
+        };
+
         // 통계 데이터 로드
         const loadStatistics = async () => {
             try {
@@ -352,6 +442,11 @@ export default {
                     type: selectedPeriod.value,
                     category: selectedType.value
                 };
+
+                // 사용자가 선택된 경우 파라미터에 추가
+                if (selectedUser.value) {
+                    params.user = selectedUser.value;
+                }
 
                 if (selectedPeriod.value === 'custom' && customStartDate.value && customEndDate.value) {
                     params.start_date = customStartDate.value;
@@ -362,6 +457,11 @@ export default {
             } catch (error) {
                 ElMessage.error('통계 데이터를 불러오는데 실패했습니다.');
             }
+        };
+
+        // 사용자 변경 핸들러
+        const handleUserChange = () => {
+            loadStatistics();
         };
 
         // 타입 변경 핸들러
@@ -427,13 +527,21 @@ export default {
             }
         };
 
-        onMounted(() => {
+        onMounted(async () => {
+            // 사용자 목록 로드
+            try {
+                await userStore.fetchUsers();
+            } catch (error) {
+                console.error('사용자 목록 로드 오류:', error);
+            }
+
             loadStatistics();
         });
 
         return {
             selectedType,
             selectedPeriod,
+            selectedUser,
             customStartDate,
             customEndDate,
             sortOrder,
@@ -443,13 +551,22 @@ export default {
 
             statistics,
             keywordStatistics,
+            users,
+            budgetUsages,
             sortedCategories,
             chartData,
             keywordChartData,
             chartOptions,
             keywordChartOptions,
 
+            // 기준치 관련
+            totalMonthlyBudget,
+            totalMonthlyUsed,
+            overBudgetCount,
+            isNearLimit,
+
             formatMoney,
+            handleUserChange,
             handleTypeChange,
             handlePeriodChange,
             handleCustomDateChange,
@@ -476,83 +593,129 @@ export default {
 }
 
 .stat-card {
-    @apply bg-white p-6 rounded-xl border border-gray-200 shadow-sm;
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .stat-card-red {
-    @apply border-red-200 bg-gradient-to-r from-red-50 to-red-100;
+    border-color: #fecaca;
+    background: linear-gradient(to right, #fef2f2, #fee2e2);
 }
 
 .stat-card-green {
-    @apply border-green-200 bg-gradient-to-r from-green-50 to-green-100;
+    border-color: #bbf7d0;
+    background: linear-gradient(to right, #f0fdf4, #dcfce7);
 }
 
 .stat-card-blue {
-    @apply border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100;
+    border-color: #bfdbfe;
+    background: linear-gradient(to right, #eff6ff, #dbeafe);
 }
 
 .stat-card-purple {
-    @apply border-purple-200 bg-gradient-to-r from-purple-50 to-purple-100;
+    border-color: #e9d5ff;
+    background: linear-gradient(to right, #faf5ff, #f3e8ff);
 }
 
 .stat-icon {
-    @apply w-12 h-12 rounded-xl flex items-center justify-center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .stat-card-red .stat-icon {
-    @apply bg-red-100 text-red-600;
+    background-color: #fee2e2;
+    color: #dc2626;
 }
 
 .stat-card-green .stat-icon {
-    @apply bg-green-100 text-green-600;
+    background-color: #dcfce7;
+    color: #16a34a;
 }
 
 .stat-label {
-    @apply text-sm font-medium text-gray-600;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
 }
 
 .stat-value {
-    @apply text-2xl font-bold text-gray-900;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
 }
 
 .category-item {
-    @apply p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors duration-200;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.category-item:hover {
+    background-color: #f3f4f6;
 }
 
 .rank-badge {
-    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
 }
 
 .rank-1 {
-    @apply bg-yellow-500;
+    background-color: #eab308;
 }
 
 .rank-2 {
-    @apply bg-gray-400;
+    background-color: #9ca3af;
 }
 
 .rank-3 {
-    @apply bg-orange-500;
+    background-color: #f97316;
 }
 
 .rank-badge:not(.rank-1):not(.rank-2):not(.rank-3) {
-    @apply bg-blue-500;
+    background-color: #3b82f6;
 }
 
 .progress-bar {
-    @apply w-full bg-gray-200 rounded-full h-1.5;
+    width: 100%;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    height: 0.375rem;
 }
 
 .progress-fill {
-    @apply h-1.5 rounded-full transition-all duration-300;
+    height: 0.375rem;
+    border-radius: 9999px;
+    transition: all 0.3s;
 }
 
 .empty-chart {
-    @apply flex flex-col items-center justify-center h-full text-center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
 }
 
 .empty-state {
-    @apply text-center py-8;
+    text-align: center;
+    padding: 2rem 0;
 }
 
 .keyword-chart {
@@ -560,6 +723,9 @@ export default {
 }
 
 .keyword-item {
-    @apply p-3 bg-gray-50 rounded-lg mb-2;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 </style>

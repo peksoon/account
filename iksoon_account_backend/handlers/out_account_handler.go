@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	apiErrors "iksoon_account_backend/errors"
 	"iksoon_account_backend/models"
@@ -21,6 +22,7 @@ type OutAccountRepository interface {
 	UpdateOutAccount(uuid, date, user string, money, categoryID int, keywordID *int, paymentMethodID int, memo string) error
 	DeleteOutAccount(uuid string) error
 	GetOutAccountByUUID(uuid string) (*models.OutAccount, error)
+	GetBudgetUsage(categoryID int, userName string, currentDate time.Time) (*models.BudgetUsage, error)
 }
 
 // InsertOutAccountHandler 새로운 구조의 지출 데이터 삽입 핸들러
@@ -91,6 +93,93 @@ func (h *OutAccountHandler) InsertOutAccountHandler(w http.ResponseWriter, r *ht
 
 	response := map[string]string{
 		"message": "지출 데이터가 성공적으로 저장되었습니다.",
+	}
+
+	utils.SendCreatedResponse(w, response)
+}
+
+// InsertOutAccountWithBudgetHandler 지출 데이터 삽입 후 기준치 정보 반환
+func (h *OutAccountHandler) InsertOutAccountWithBudgetHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		utils.SendError(w, apiErrors.ErrInvalidRequest.WithMessage("지원되지 않는 메소드입니다"))
+		return
+	}
+
+	var req struct {
+		Date            string `json:"date"`
+		User            string `json:"user"`
+		Money           int    `json:"money"`
+		CategoryID      int    `json:"category_id"`
+		KeywordName     string `json:"keyword_name,omitempty"`
+		PaymentMethodID int    `json:"payment_method_id"`
+		Memo            string `json:"memo"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.LogError("JSON 디코드", err)
+		utils.SendError(w, apiErrors.ErrInvalidJSON)
+		return
+	}
+
+	utils.Debug("기준치 포함 지출 데이터 삽입 요청: %+v", req)
+
+	// 입력 검증
+	if req.Date == "" {
+		utils.SendError(w, apiErrors.ErrMissingRequired.WithMessage("날짜는 필수입니다"))
+		return
+	}
+	if req.User == "" {
+		utils.SendError(w, apiErrors.ErrMissingRequired.WithMessage("사용자는 필수입니다"))
+		return
+	}
+	if req.Money <= 0 {
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "금액은 0보다 커야 합니다.")
+		return
+	}
+	if req.CategoryID <= 0 {
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "카테고리를 선택해주세요.")
+		return
+	}
+	if req.PaymentMethodID <= 0 {
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "결제수단을 선택해주세요.")
+		return
+	}
+
+	// 키워드 처리 (있는 경우)
+	var keywordID *int
+	if req.KeywordName != "" {
+		id, err := h.KeywordDB.UpsertKeyword(req.CategoryID, req.KeywordName)
+		if err != nil {
+			utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "키워드 처리 중 오류 발생")
+			return
+		}
+		keywordIDValue := int(id)
+		keywordID = &keywordIDValue
+	}
+
+	// 지출 데이터 삽입
+	err := h.DB.InsertOutAccount(req.Date, req.User, req.Money, req.CategoryID, keywordID, req.PaymentMethodID, req.Memo)
+	if err != nil {
+		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "데이터 삽입 중 오류 발생")
+		return
+	}
+
+	// 기준치 정보 조회
+	parsedDate, err := utils.ParseDateTimeKST(req.Date)
+	if err != nil {
+		parsedDate = time.Now()
+	}
+
+	budgetUsage, err := h.DB.GetBudgetUsage(req.CategoryID, req.User, parsedDate)
+	if err != nil {
+		// 기준치 조회 오류는 무시하고 성공 메시지만 반환
+		utils.LogError("기준치 조회", err)
+		budgetUsage = nil
+	}
+
+	response := models.OutAccountWithBudget{
+		Message:     "지출 데이터가 성공적으로 저장되었습니다.",
+		BudgetUsage: budgetUsage,
 	}
 
 	utils.SendCreatedResponse(w, response)

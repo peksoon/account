@@ -119,14 +119,15 @@ type KeywordStatistics struct {
 	Count       int     `json:"count"`
 }
 
-// StatisticsResponse 구조체 - 통계 응답
+// StatisticsResponse 구조체 - 통계 응답 (기준치 정보 포함)
 type StatisticsResponse struct {
-	Period      string               `json:"period"`
-	TotalAmount int                  `json:"total_amount"`
-	TotalCount  int                  `json:"total_count"`
-	Categories  []CategoryStatistics `json:"categories"`
-	TopCategory *CategoryStatistics  `json:"top_category,omitempty"`
-	ChartData   []ChartData          `json:"chart_data"`
+	Period       string               `json:"period"`
+	TotalAmount  int                  `json:"total_amount"`
+	TotalCount   int                  `json:"total_count"`
+	Categories   []CategoryStatistics `json:"categories"`
+	TopCategory  *CategoryStatistics  `json:"top_category,omitempty"`
+	ChartData    []ChartData          `json:"chart_data"`
+	BudgetUsages []BudgetUsage        `json:"budget_usages,omitempty"` // 기준치 사용량 정보
 }
 
 // ChartData 구조체 - 차트 데이터
@@ -161,6 +162,62 @@ type BankAccountRequest struct {
 type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// CategoryBudget 구조체 - 카테고리별 기준치 관리
+type CategoryBudget struct {
+	ID            int       `json:"id"`
+	CategoryID    int       `json:"category_id"`
+	CategoryName  string    `json:"category_name,omitempty"`
+	UserName      string    `json:"user_name"`
+	MonthlyBudget int       `json:"monthly_budget"` // 월 기준치
+	YearlyBudget  int       `json:"yearly_budget"`  // 연 기준치
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// BudgetUsage 구조체 - 기준치 사용량 정보
+type BudgetUsage struct {
+	CategoryID       int     `json:"category_id"`
+	CategoryName     string  `json:"category_name"`
+	MonthlyBudget    int     `json:"monthly_budget"`
+	YearlyBudget     int     `json:"yearly_budget"`
+	MonthlyUsed      int     `json:"monthly_used"`      // 월 사용량
+	YearlyUsed       int     `json:"yearly_used"`       // 연 사용량
+	MonthlyRemaining int     `json:"monthly_remaining"` // 월 잔여
+	YearlyRemaining  int     `json:"yearly_remaining"`  // 연 잔여
+	MonthlyPercent   float64 `json:"monthly_percent"`   // 월 사용 퍼센티지
+	YearlyPercent    float64 `json:"yearly_percent"`    // 연 사용 퍼센티지
+	IsMonthlyOver    bool    `json:"is_monthly_over"`   // 월 기준치 초과 여부
+	IsYearlyOver     bool    `json:"is_yearly_over"`    // 연 기준치 초과 여부
+}
+
+// CategoryBudgetRequest 구조체 - 기준치 요청
+type CategoryBudgetRequest struct {
+	CategoryID    int    `json:"category_id"`
+	UserName      string `json:"user_name"`
+	MonthlyBudget int    `json:"monthly_budget"`
+	YearlyBudget  int    `json:"yearly_budget"`
+}
+
+// MonthlyBudgetRequest 구조체 - 월별 기준치 요청
+type MonthlyBudgetRequest struct {
+	CategoryID int    `json:"category_id"`
+	UserName   string `json:"user_name"`
+	Amount     int    `json:"amount"`
+}
+
+// YearlyBudgetRequest 구조체 - 연별 기준치 요청
+type YearlyBudgetRequest struct {
+	CategoryID int    `json:"category_id"`
+	UserName   string `json:"user_name"`
+	Amount     int    `json:"amount"`
+}
+
+// OutAccountWithBudget 구조체 - 기준치 정보 포함 지출 응답
+type OutAccountWithBudget struct {
+	Message     string       `json:"message"`
+	BudgetUsage *BudgetUsage `json:"budget_usage,omitempty"`
 }
 
 // 에러 코드 상수

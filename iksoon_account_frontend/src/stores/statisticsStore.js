@@ -70,6 +70,11 @@ export const useStatisticsStore = defineStore('statistics', {
         queryParams.append('type', params.type || 'month');
         queryParams.append('category', params.category || 'out');
         
+        // 사용자 파라미터 추가 (기준치 정보용)
+        if (params.user) {
+          queryParams.append('user', params.user);
+        }
+        
         // 커스텀 날짜 범위가 있는 경우
         if (params.start_date && params.end_date) {
           queryParams.append('start_date', params.start_date);

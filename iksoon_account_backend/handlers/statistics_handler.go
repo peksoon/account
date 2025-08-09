@@ -17,6 +17,7 @@ type StatisticsRepository interface {
 	GetCategoryStatistics(startDate, endDate, accountType string) ([]models.CategoryStatistics, error)
 	GetKeywordStatistics(categoryID int, startDate, endDate, accountType string) ([]models.KeywordStatistics, error)
 	GetTotalAmount(startDate, endDate, accountType string) (int, int, error) // total, count
+	GetAllBudgetUsages(userName string, currentDate time.Time) ([]models.BudgetUsage, error)
 }
 
 // 통계 조회 핸들러
@@ -29,6 +30,7 @@ func (h *StatisticsHandler) GetStatisticsHandler(w http.ResponseWriter, r *http.
 	// 쿼리 파라미터 파싱
 	statisticsType := r.URL.Query().Get("type")  // 'week', 'month', 'year', 'custom', 'all'
 	accountType := r.URL.Query().Get("category") // 'out' 또는 'in'
+	userName := r.URL.Query().Get("user")        // 사용자명 (기준치 조회용)
 	startDate := r.URL.Query().Get("start_date")
 	endDate := r.URL.Query().Get("end_date")
 
@@ -73,13 +75,26 @@ func (h *StatisticsHandler) GetStatisticsHandler(w http.ResponseWriter, r *http.
 		topCategory = &categories[0]
 	}
 
+	// 기준치 정보 조회 (지출 통계이고 사용자명이 있는 경우에만)
+	var budgetUsages []models.BudgetUsage
+	if accountType == "out" && userName != "" {
+		currentDate := time.Now()
+		budgetUsages, err = h.DB.GetAllBudgetUsages(userName, currentDate)
+		if err != nil {
+			utils.LogError("기준치 사용량 조회", err)
+			// 기준치 조회 오류는 무시하고 계속 진행
+			budgetUsages = nil
+		}
+	}
+
 	response := models.StatisticsResponse{
-		Period:      period,
-		TotalAmount: totalAmount,
-		TotalCount:  totalCount,
-		Categories:  categories,
-		TopCategory: topCategory,
-		ChartData:   chartData,
+		Period:       period,
+		TotalAmount:  totalAmount,
+		TotalCount:   totalCount,
+		Categories:   categories,
+		TopCategory:  topCategory,
+		ChartData:    chartData,
+		BudgetUsages: budgetUsages,
 	}
 
 	utils.SendSuccessResponse(w, response)

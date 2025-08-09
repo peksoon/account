@@ -196,6 +196,7 @@ import { usePaymentMethodStore } from '../stores/paymentMethodStore';
 import { useDepositPathStore } from '../stores/depositPathStore';
 import { useKeywordStore } from '../stores/keywordStore';
 import { useUserStore } from '../stores/userStore';
+import { useBudgetStore } from '../stores/budgetStore';
 
 export default {
     components: {
@@ -212,13 +213,14 @@ export default {
             required: true
         }
     },
-    emits: ['save', 'close', 'update:newAccount', 'open-category-manager', 'open-payment-method-manager', 'open-deposit-path-manager', 'open-keyword-manager', 'open-user-manager'],
+    emits: ['save', 'close', 'update:newAccount', 'open-category-manager', 'open-payment-method-manager', 'open-deposit-path-manager', 'open-keyword-manager', 'open-user-manager', 'budget-alert', 'budget-save-success'],
     setup(props, { emit }) {
         const categoryStore = useCategoryStore();
         const paymentMethodStore = usePaymentMethodStore();
         const depositPathStore = useDepositPathStore();
         const keywordStore = useKeywordStore();
         const userStore = useUserStore();
+        const budgetStore = useBudgetStore();
 
         const formRef = ref(null);
         const saving = ref(false);
@@ -351,17 +353,51 @@ export default {
 
                 saving.value = true;
 
-                // 키워드 사용 기록 (사용 횟수 증가)
-                if (localAccount.value.keyword_name && localAccount.value.category_id) {
-                    await keywordStore.useKeyword(localAccount.value.category_id, localAccount.value.keyword_name);
-                }
-
                 // 데이터 정리
                 const accountData = { ...localAccount.value };
 
-                emit('save', accountData);
+                // 지출인 경우 기준치 정보를 포함한 API 사용 (키워드 처리는 백엔드에서)
+                if (localAccount.value.type === 'out') {
+                    try {
+                        const response = await budgetStore.createOutAccountWithBudget(accountData);
 
-                ElMessage.success('데이터가 성공적으로 저장되었습니다.');
+                        console.log('기준치 포함 지출 응답:', response);
+                        console.log('기준치 사용량 데이터:', response.budget_usage);
+
+                        // 기준치 정보가 있는 경우 알림 팝업 표시
+                        if (response.budget_usage) {
+                            console.log('기준치 경고 팝업 표시 중...');
+                            emit('budget-alert', {
+                                budgetUsage: response.budget_usage,
+                                expenseAmount: accountData.money,
+                                expenseDate: accountData.date,
+                                expenseKeyword: accountData.keyword_name
+                            });
+                        } else {
+                            console.log('기준치 정보가 없어서 팝업 닫기');
+                            // 기준치 정보가 없으면 팝업 닫기
+                            emit('close');
+                        }
+
+                        // 캘린더 갱신을 위해 save 이벤트 발생
+                        emit('budget-save-success');
+
+                        ElMessage.success('지출이 성공적으로 기록되었습니다.');
+                    } catch (error) {
+                        console.error('기준치 포함 지출 저장 실패:', error);
+                        ElMessage.error('지출 저장 중 오류가 발생했습니다.');
+                        return;
+                    }
+                } else {
+                    // 수입인 경우 키워드 사용 기록 후 기존 방식 사용
+                    if (localAccount.value.keyword_name && localAccount.value.category_id) {
+                        await keywordStore.useKeyword(localAccount.value.category_id, localAccount.value.keyword_name);
+                    }
+
+                    emit('save', accountData);
+                    emit('close');
+                    ElMessage.success('수입이 성공적으로 기록되었습니다.');
+                }
 
             } catch (error) {
                 console.error('Form validation failed:', error);

@@ -38,15 +38,23 @@
               </el-button>
             </template>
 
-            <!-- 통계 모드 전환 버튼 -->
-            <el-button v-if="viewMode === 'calendar'" @click="openStatistics" type="info" :icon="BarChart"
-              :size="isMobile ? 'default' : 'large'" class="w-full sm:w-auto">
-              📊 통계
-            </el-button>
-            <el-button v-else @click="closeStatistics" type="primary" :icon="Calendar"
-              :size="isMobile ? 'default' : 'large'" class="w-full sm:w-auto">
-              📅 달력으로 돌아가기
-            </el-button>
+            <!-- 뷰 모드 전환 버튼들 -->
+            <template v-if="viewMode === 'calendar'">
+              <el-button @click="openStatistics" type="info" :icon="BarChart" :size="isMobile ? 'default' : 'large'"
+                class="w-full sm:w-auto">
+                📊 통계
+              </el-button>
+              <el-button @click="openBudgetManager" type="warning" :size="isMobile ? 'default' : 'large'"
+                class="w-full sm:w-auto">
+                💰 기준치 관리
+              </el-button>
+            </template>
+            <template v-else>
+              <el-button @click="goBackToCalendar" type="primary" :icon="Calendar"
+                :size="isMobile ? 'default' : 'large'" class="w-full sm:w-auto">
+                📅 달력으로 돌아가기
+              </el-button>
+            </template>
           </div>
         </div>
 
@@ -138,9 +146,16 @@
       </template>
 
       <!-- 통계 모드 -->
-      <template v-else>
+      <template v-else-if="viewMode === 'statistics'">
         <div class="card p-6">
-          <StatisticsDashboard @close="closeStatistics" />
+          <StatisticsDashboard @close="closeStatistics" @open-budget-manager="openBudgetManager" />
+        </div>
+      </template>
+
+      <!-- 기준치 관리 모드 -->
+      <template v-else-if="viewMode === 'budget'">
+        <div class="card p-6">
+          <BudgetManager @close="closeBudgetManager" />
         </div>
       </template>
     </div>
@@ -149,7 +164,8 @@
     <AddPopup v-if="showAddPopup" :newAccount="newAccount" @close="closeAddPopup" @save="saveAccount"
       @open-category-manager="openCategoryManager" @open-keyword-manager="openKeywordManager"
       @open-payment-method-manager="openPaymentMethodManager" @open-deposit-path-manager="openDepositPathManager"
-      @open-user-manager="openUserManager" />
+      @open-user-manager="openUserManager" @budget-alert="handleBudgetAlert"
+      @budget-save-success="handleBudgetSaveSuccess" />
 
     <DetailPopup v-if="showCustomPopup" :eventDetail="eventDetail" :isEditMode="isEditMode" @close="closePopup"
       @edit="openEditMode" @update="updateAccount" @delete="deleteAccount" @cancel-edit="cancelEdit" />
@@ -162,6 +178,13 @@
 
     <!-- 키워드 관리 모달 -->
     <KeywordManager v-if="showKeywordManager" :category-id="keywordManagerCategoryId" @close="closeKeywordManager" />
+
+    <!-- 기준치 알림 팝업 -->
+    <BudgetAlertPopup :is-visible="showBudgetAlert" :budget-usage="budgetAlertData.budgetUsage"
+      :expense-amount="budgetAlertData.expenseAmount" :expense-date="budgetAlertData.expenseDate"
+      :expense-keyword="budgetAlertData.expenseKeyword" @close="closeBudgetAlert"
+      @open-budget-management="openBudgetManager" />
+
 
 
   </div>
@@ -186,6 +209,8 @@ import PaymentMethodManager from './PaymentMethodManager.vue';
 import DepositPathManager from './DepositPathManager.vue';
 import KeywordManager from './KeywordManager.vue';
 import StatisticsDashboard from './StatisticsDashboard.vue';
+import BudgetAlertPopup from './BudgetAlertPopup.vue';
+import BudgetManager from './BudgetManager.vue';
 import {
   Calendar,
   BarChart,
@@ -207,6 +232,8 @@ export default {
     DepositPathManager,
     KeywordManager,
     StatisticsDashboard,
+    BudgetAlertPopup,
+    BudgetManager,
     Calendar,
     TrendingUp,
     TrendingDown,
@@ -234,7 +261,17 @@ export default {
     const showKeywordManager = ref(false);
     const keywordManagerCategoryId = ref(null);
 
-    // 뷰 모드 상태 ('calendar' 또는 'statistics')
+    // 기준치 관련 상태
+    const showBudgetAlert = ref(false);
+
+    const budgetAlertData = ref({
+      budgetUsage: null,
+      expenseAmount: 0,
+      expenseDate: '',
+      expenseKeyword: ''
+    });
+
+    // 뷰 모드 상태 ('calendar', 'statistics', 또는 'budget')
     const viewMode = ref('calendar');
 
     // 모바일 체크
@@ -454,8 +491,14 @@ export default {
       selectedDateData.value = [];
     };
 
-    // 계정 저장
+    // 계정 저장 (수입만 처리, 지출은 budget-save-success에서 처리)
     const saveAccount = async (accountData) => {
+      // 지출은 budgetStore.createOutAccountWithBudget에서 이미 처리되므로 수입만 처리
+      if (accountData.type === 'out') {
+        console.warn('지출은 budgetStore에서 처리되므로 saveAccount에서 무시됩니다.');
+        return;
+      }
+
       loading.value = true;
       try {
         await accountStore.saveAccount(accountData);
@@ -570,6 +613,56 @@ export default {
       viewMode.value = 'calendar';
     };
 
+    const goBackToCalendar = () => {
+      viewMode.value = 'calendar';
+    };
+
+    // 기준치 알림 처리
+    const handleBudgetAlert = (alertData) => {
+      budgetAlertData.value = alertData;
+      showBudgetAlert.value = true;
+      // AddPopup 닫기
+      popupStore.closeAddPopup();
+    };
+
+    // 기준치 저장 성공 처리 (캘린더 갱신)
+    const handleBudgetSaveSuccess = async () => {
+      loading.value = true;
+      try {
+        // 달력 갱신
+        await fetchAndUpdateCalendar();
+
+        // 현재 선택된 날짜의 데이터 다시 불러오기
+        if (selectedDate.value) {
+          selectedDateData.value = accountStore.fetchDataForDate(selectedDate.value);
+        }
+      } catch (error) {
+        console.error('Calendar update error:', error);
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    const closeBudgetAlert = () => {
+      showBudgetAlert.value = false;
+      budgetAlertData.value = {
+        budgetUsage: null,
+        expenseAmount: 0,
+        expenseDate: '',
+        expenseKeyword: ''
+      };
+      // AddPopup도 닫기
+      popupStore.closeAddPopup();
+    };
+
+    const openBudgetManager = () => {
+      viewMode.value = 'budget';
+    };
+
+    const closeBudgetManager = () => {
+      viewMode.value = 'calendar';
+    };
+
     // 금액 포맷팅 함수
     const formatMoney = (amount) => {
       return new Intl.NumberFormat('ko-KR').format(amount);
@@ -651,8 +744,18 @@ export default {
       keywordManagerCategoryId,
       openStatistics,
       closeStatistics,
+      goBackToCalendar,
       showStatistics,
       viewMode,
+
+      // 기준치 관련 상태 및 메서드
+      showBudgetAlert,
+      budgetAlertData,
+      handleBudgetAlert,
+      handleBudgetSaveSuccess,
+      closeBudgetAlert,
+      openBudgetManager,
+      closeBudgetManager,
 
       // 아이콘
       Calendar,
