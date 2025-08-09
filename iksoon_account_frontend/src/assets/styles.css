@@ -1,0 +1,231 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* Google Fonts - Inter */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+/* 전역 스타일 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+/* 커스텀 스크롤바 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 카드 컴포넌트 */
+.card {
+  @apply bg-white rounded-xl shadow-lg border border-gray-100 transition-all duration-300;
+}
+
+.card:hover {
+  @apply shadow-xl;
+}
+
+/* 버튼 스타일 */
+.btn-primary {
+  @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-3 rounded-lg font-medium;
+  @apply hover:from-primary-600 hover:to-primary-700 transform hover:scale-105 transition-all duration-200;
+  @apply focus:ring-4 focus:ring-primary-200 focus:outline-none;
+}
+
+.btn-success {
+  @apply bg-gradient-to-r from-success-500 to-success-600 text-white px-6 py-3 rounded-lg font-medium;
+  @apply hover:from-success-600 hover:to-success-700 transform hover:scale-105 transition-all duration-200;
+  @apply focus:ring-4 focus:ring-success-200 focus:outline-none;
+}
+
+.btn-danger {
+  @apply bg-gradient-to-r from-danger-500 to-danger-600 text-white px-6 py-3 rounded-lg font-medium;
+  @apply hover:from-danger-600 hover:to-danger-700 transform hover:scale-105 transition-all duration-200;
+  @apply focus:ring-4 focus:ring-danger-200 focus:outline-none;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium;
+  @apply hover:bg-gray-300 transform hover:scale-105 transition-all duration-200;
+  @apply focus:ring-4 focus:ring-gray-100 focus:outline-none;
+}
+
+/* 달력 커스텀 스타일 */
+.fc {
+  font-family: "Inter", sans-serif !important;
+}
+
+.fc-toolbar {
+  @apply mb-6;
+}
+
+.fc-toolbar-title {
+  @apply text-2xl font-bold text-gray-800;
+}
+
+.fc-button {
+  @apply bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.fc-button-primary {
+  @apply bg-primary-500 border-primary-500 text-white hover:bg-primary-600;
+}
+
+.fc-daygrid-day {
+  @apply transition-colors duration-200;
+}
+
+.fc-daygrid-day:hover {
+  @apply bg-gray-50;
+}
+
+.fc-day-today {
+  @apply bg-primary-50 border-primary-200;
+}
+
+.fc-event {
+  @apply border-none rounded-md font-medium text-xs shadow-sm;
+}
+
+.fc-event.income-event {
+  @apply bg-success-500 text-white;
+}
+
+.fc-event.expense-event {
+  @apply bg-danger-500 text-white;
+}
+
+/* 애니메이션 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-enter-from {
+  transform: translateX(20px);
+  opacity: 0;
+}
+
+.slide-leave-to {
+  transform: translateX(-20px);
+  opacity: 0;
+}
+
+/* 모달 스타일 */
+.modal-backdrop {
+  @apply fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4;
+}
+
+.modal-content {
+  @apply bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* 로딩 스피너 */
+.spinner {
+  @apply inline-block w-6 h-6 border-2 border-gray-200 border-t-primary-500 rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 툴팁 스타일 */
+.tooltip {
+  @apply absolute z-10 px-3 py-2 text-sm text-white bg-gray-800 rounded-lg shadow-lg;
+  @apply opacity-0 invisible transition-all duration-200;
+}
+
+.tooltip.show {
+  @apply opacity-100 visible;
+}
+
+/* 폼 요소 스타일 */
+.form-input {
+  @apply w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
+  @apply transition-all duration-200;
+}
+
+.form-label {
+  @apply block text-sm font-semibold text-gray-700 mb-2;
+}
+
+.form-select {
+  @apply w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
+  @apply transition-all duration-200 bg-white;
+}
+
+/* 텍스트 스타일 */
+.text-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 반응형 컨테이너 */
+.container-responsive {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  .fc-toolbar {
+    @apply flex-col space-y-4;
+  }
+
+  .fc-toolbar-chunk {
+    @apply flex justify-center;
+  }
+
+  .modal-content {
+    @apply mx-4 max-w-none;
+  }
+}
