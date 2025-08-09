@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Backend Service
+  iksoon-backend:
+    build:
+      context: ./iksoon_account_backend
+      dockerfile: Dockerfile
+    container_name: iksoon-account-backend
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      # 데이터베이스 파일 영구 저장
+      - ./data:/root/data
+    environment:
+      - GO_ENV=production
+      - DB_PATH=/root/data/account.db
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on: []
+
+  # Frontend Service  
+  iksoon-frontend:
+    build:
+      context: ./iksoon_account_frontend
+      dockerfile: Dockerfile
+    container_name: iksoon-account-frontend
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - VUE_APP_API_URL=http://localhost:8080
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - iksoon-backend
+
+volumes:
+  # 데이터베이스 영구 저장용 볼륨
+  data:
+    driver: local

@@ -107,6 +107,13 @@ func main() {
 	http.Handle("/statistics", enableCorsAndLogging(http.HandlerFunc(statisticsHandler.GetStatisticsHandler)))
 	http.Handle("/statistics/category-keywords", enableCorsAndLogging(http.HandlerFunc(statisticsHandler.GetCategoryKeywordStatisticsHandler)))
 
+	// Health Check API
+	http.Handle("/health", enableCorsAndLogging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok","service":"iksoon-account-backend"}`))
+	})))
+
 	// 서버 시작
 	utils.LogStartup("8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

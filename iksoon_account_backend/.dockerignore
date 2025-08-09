@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+README.md
+
+# Development files
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Test files
+*_test.go
+test/
+coverage.out
+
+# Build artifacts
+main
+*.exe
+dist/
+build/
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Database files (will be created in container)
+*.db
+data/
+
+# Documentation
+docs/
+*.md
