@@ -1,4 +1,4 @@
-# Frontend Dockerfile
+# Frontend Development Dockerfile
 FROM node:18-alpine AS builder
 
 # 작업 디렉토리 설정
@@ -13,10 +13,9 @@ RUN npm ci
 # 소스 코드 복사
 COPY . .
 
-# 환경변수 설정 (빌드 시점에 적용)
-# 프록시를 통해 접근하도록 설정 (nginx 프록시 사용)
-ENV VUE_APP_BACKEND_API_BASE_URL=""
-ENV NODE_ENV=production
+# 환경변수 설정 (개발환경)
+ENV VUE_APP_BACKEND_API_BASE_URL=http://localhost:8080
+ENV NODE_ENV=development
 
 # Vue.js 애플리케이션 빌드
 RUN npm run build
@@ -27,8 +26,8 @@ FROM nginx:alpine
 # 빌드된 Vue.js 앱을 Nginx 서빙 디렉토리로 복사
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# 운영환경용 Nginx 설정 파일 복사
-COPY --from=builder /app/nginx.conf.production /etc/nginx/nginx.conf
+# 개발환경용 Nginx 설정 파일 복사
+COPY --from=builder /app/nginx.conf.development /etc/nginx/nginx.conf
 
 # 포트 3000 노출
 EXPOSE 3000

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import axios from 'axios';
 
 const BACKEND_API_BASE_URL = process.env.VUE_APP_BACKEND_API_BASE_URL || 
-  (process.env.NODE_ENV === 'production' ? `http://${window.location.hostname}:8080` : 'http://localhost:8080');
+  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8080');
 
 export const useDepositPathStore = defineStore('depositPath', {
   state: () => ({
