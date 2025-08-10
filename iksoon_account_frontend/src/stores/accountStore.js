@@ -2,8 +2,9 @@ import { defineStore } from 'pinia';
 import axios from 'axios';
 import { formatDateToLocalISOString } from '../utils';
 
-// 환경변수에서 API 주소를 가져오고, 기본값은 localhost:8080
-const BACKEND_API_BASE_URL = process.env.VUE_APP_BACKEND_API_BASE_URL  || 'http://localhost:8080';
+// 환경변수에서 API 주소를 가져오고, 운영환경에서는 현재 호스트의 8080 포트 사용
+const BACKEND_API_BASE_URL = process.env.VUE_APP_BACKEND_API_BASE_URL || 
+  (process.env.NODE_ENV === 'production' ? `http://${window.location.hostname}:8080` : 'http://localhost:8080');
 
 export const useAccountStore = defineStore('account', {
   state: () => ({

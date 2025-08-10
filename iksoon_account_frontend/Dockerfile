@@ -14,7 +14,8 @@ RUN npm ci
 COPY . .
 
 # 환경변수 설정 (빌드 시점에 적용)
-ENV VUE_APP_BACKEND_API_BASE_URL=http://localhost:8080
+# 프록시를 통해 접근하도록 설정 (nginx 프록시 사용)
+ENV VUE_APP_BACKEND_API_BASE_URL=""
 ENV NODE_ENV=production
 
 # Vue.js 애플리케이션 빌드
