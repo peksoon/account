@@ -1,19 +1,15 @@
-// API 설정 파일 - 환경별 구분
-export const API_CONFIG = {
-  DEV_URL: 'http://localhost:8080',      // 개발: 로컬 백엔드
-  PROD_URL: 'http://133.186.153.179:8080' // 운영: 운영 서버 백엔드
-};
-
-// 현재 환경에 맞는 API URL 반환
+// API 설정 파일 - 환경변수 기반
 export const getApiBaseUrl = () => {
-  // NODE_ENV로 환경 구분
+  // 환경변수에서 API URL 가져오기 (환경별 .env 파일에서 설정)
+  const apiUrl = process.env.VUE_APP_BACKEND_API_BASE_URL;
+  
   if (process.env.NODE_ENV === 'production') {
-    console.log('🚀 Production mode: Using', API_CONFIG.PROD_URL);
-    return API_CONFIG.PROD_URL;
+    console.log('🚀 Production mode: Using', apiUrl);
   } else {
-    console.log('🛠️ Development mode: Using', API_CONFIG.DEV_URL);
-    return API_CONFIG.DEV_URL;
+    console.log('🛠️ Development mode: Using', apiUrl);
   }
+  
+  return apiUrl || 'http://localhost:8080'; // 기본값
 };
 
-export default API_CONFIG;
+export default { getApiBaseUrl };

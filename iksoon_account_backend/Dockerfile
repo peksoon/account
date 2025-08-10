@@ -30,8 +30,8 @@ WORKDIR /app
 # 빌드된 바이너리 복사
 COPY --from=builder /app/main .
 
-# 설정 파일 복사
-COPY --from=builder /app/config.env.production .
+# 운영 환경 설정 파일을 기본 설정으로 복사 (우선순위: config.env.production > config.env)
+COPY --from=builder /app/config.env.production ./config.env.production
 
 # DB 디렉토리 생성 (운영용)
 RUN mkdir -p /db

@@ -48,9 +48,8 @@ func GetConfig() *Config {
 func (c *Config) loadFromEnvFile() {
 	// 환경별 설정 파일 경로 결정
 	configFiles := []string{
-		"config.env.production",  // 우선순위 1: 운영 설정
-		"config.env.development", // 우선순위 2: 개발 설정
-		"config.env",             // 우선순위 3: 기본 설정
+		"config.env",            // 우선순위 1: 기본 설정 (개발용)
+		"config.env.production", // 우선순위 2: 운영 설정 (Docker에서만 존재)
 	}
 
 	for _, configFile := range configFiles {

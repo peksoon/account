@@ -1,34 +1,26 @@
 @echo off
-REM Windows용 개발 환경 실행 스크립트
-REM config.env.development 파일을 읽어서 환경변수로 설정 후 실행
+REM 개발 환경 실행 스크립트 (Windows)
+REM 환경별 설정 파일 사용
 
-echo [INFO] 개발 환경 설정 로드 중...
+echo [INFO] 개발 환경 백엔드 서버 시작 중...
 
-REM config.env.development 파일 확인
-if exist "iksoon_account_backend\config.env.development" (
-    echo [SUCCESS] config.env.development 파일을 찾았습니다.
+REM 백엔드 디렉토리로 이동
+cd iksoon_account_backend
+
+REM config.env (개발용) 파일 확인
+if exist "config.env" (
+    echo [SUCCESS] config.env ^(개발용^) 파일을 찾았습니다.
+    echo [CONFIG] 개발 환경 설정 로드 중...
     
-    REM 환경변수 설정 (Windows는 파일에서 직접 읽기 어려우므로 수동 설정)
-    set PORT=8080
-    set DB_PATH=./data/account_app_dev.db
-    set LOG_LEVEL=DEBUG
-    set MAX_CONNECTIONS=50
-    
-    echo [INFO] 설정된 환경변수:
-    echo   PORT: %PORT%
-    echo   DB_PATH: %DB_PATH%
-    echo   LOG_LEVEL: %LOG_LEVEL%
-    echo   MAX_CONNECTIONS: %MAX_CONNECTIONS%
-    
+    echo === 개발 환경 설정 ===
+    type config.env | findstr /v "^#" | findstr /v "^$"
+    echo =====================
+    echo.
 ) else (
-    echo [INFO] config.env.development 파일이 없습니다. 기본값으로 실행합니다.
+    echo [WARNING] config.env 파일이 없습니다. 기본 설정으로 실행합니다.
 )
 
-echo.
-echo [INFO] 백엔드 서버 시작 중...
-
-REM 백엔드 디렉토리로 이동 후 실행
-cd iksoon_account_backend
+echo [INFO] Go 백엔드 서버 시작...
 go run main.go
 
 pause

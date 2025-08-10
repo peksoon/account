@@ -13,11 +13,12 @@ RUN npm ci
 # 소스 코드 복사
 COPY . .
 
-# 환경변수 설정 (운영환경으로 설정)
-ENV NODE_ENV=production
+# 운영 환경 설정 파일을 .env로 복사 (Vue.js가 자동으로 읽음)
+RUN cp env.production .env
 
 # 환경 확인 (디버깅용)
-RUN echo "NODE_ENV: $NODE_ENV"
+RUN echo "Using production environment config:"
+RUN cat .env
 
 # Vue.js 애플리케이션 빌드
 RUN npm run build
