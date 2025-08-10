@@ -14,8 +14,8 @@ RUN npm ci
 COPY . .
 
 # 환경변수 설정 (빌드 시점에 적용)
-# 프록시를 통해 접근하도록 설정 (nginx 프록시 사용)
-ENV VUE_APP_BACKEND_API_BASE_URL=""
+# 운영 서버 IP로 직접 API 호출
+ENV VUE_APP_BACKEND_API_BASE_URL=http://133.186.153.179:8080
 ENV NODE_ENV=production
 
 # Vue.js 애플리케이션 빌드
@@ -27,8 +27,8 @@ FROM nginx:alpine
 # 빌드된 Vue.js 앱을 Nginx 서빙 디렉토리로 복사
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# 운영환경용 Nginx 설정 파일 복사
-COPY --from=builder /app/nginx.conf.production /etc/nginx/nginx.conf
+# Nginx 설정 파일 복사
+COPY --from=builder /app/nginx.conf /etc/nginx/nginx.conf
 
 # 포트 3000 노출
 EXPOSE 3000

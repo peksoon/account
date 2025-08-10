@@ -2,9 +2,8 @@ import { defineStore } from 'pinia';
 import axios from 'axios';
 import { formatDateToLocalISOString } from '../utils';
 
-// 환경변수에서 API 주소를 가져오고, 운영환경에서는 nginx 프록시 사용 (상대경로)
-const BACKEND_API_BASE_URL = process.env.VUE_APP_BACKEND_API_BASE_URL || 
-  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8080');
+// 환경변수에서 API 주소를 가져오고, 기본값은 운영 서버 IP
+const BACKEND_API_BASE_URL = process.env.VUE_APP_BACKEND_API_BASE_URL || 'http://133.186.153.179:8080';
 
 export const useAccountStore = defineStore('account', {
   state: () => ({
