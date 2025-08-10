@@ -89,6 +89,28 @@ cleanup_containers() {
         docker system prune -f
     fi
     
+    # 완전한 캐시 제거 (--force-clean)
+    if [[ "$1" == "--force-clean" ]]; then
+        log_warning "🧹 모든 Docker 캐시 및 이미지 제거 중..."
+        
+        # 프로젝트 관련 컨테이너 강제 제거
+        docker ps -a | grep "${PROJECT_NAME}" | awk '{print $1}' | xargs -r docker rm -f 2>/dev/null || true
+        
+        # 프로젝트 관련 이미지 제거
+        docker rmi ${BACKEND_IMAGE} ${FRONTEND_IMAGE} 2>/dev/null || true
+        
+        # 사용하지 않는 모든 것 제거
+        docker system prune -a -f --volumes
+        
+        # 빌드 캐시 완전 제거
+        docker builder prune -a -f
+        
+        # 네트워크 정리
+        docker network prune -f
+        
+        log_success "모든 Docker 캐시가 제거되었습니다."
+    fi
+    
     log_success "컨테이너 정리 완료"
 }
 
@@ -103,6 +125,13 @@ create_data_directory() {
 # 함수: 이미지 빌드
 build_images() {
     log_info "Docker 이미지 빌드 시작..."
+    
+    # 캐시 제거 옵션 확인
+    BUILD_ARGS=""
+    if [[ "$FORCE_CLEAN" == "true" ]]; then
+        BUILD_ARGS="--no-cache --pull"
+        log_info "🚫 캐시 없이 빌드합니다..."
+    fi
     
     # Backend 빌드 준비 (go.sum 파일 확인)
     log_info "Backend 빌드 환경 준비 중..."
@@ -122,12 +151,12 @@ build_images() {
     
     # Backend 이미지 빌드
     log_info "Backend 이미지 빌드 중..."
-    docker build -t ${BACKEND_IMAGE} ./iksoon_account_backend/
+    docker build $BUILD_ARGS -t ${BACKEND_IMAGE} ./iksoon_account_backend/
     log_success "Backend 이미지 빌드 완료"
     
     # Frontend 이미지 빌드
     log_info "Frontend 이미지 빌드 중..."
-    docker build -t ${FRONTEND_IMAGE} ./iksoon_account_frontend/
+    docker build $BUILD_ARGS -t ${FRONTEND_IMAGE} ./iksoon_account_frontend/
     log_success "Frontend 이미지 빌드 완료"
     
     log_success "모든 이미지 빌드 완료"
@@ -142,15 +171,29 @@ start_containers() {
     log_info "서비스 시작 대기 중..."
     sleep 10
     
-    # Backend 헬스체크
-    log_info "Backend 서비스 확인 중..."
+    # Backend 헬스체크 (Frontend 프록시를 통해 확인)
+    log_info "Backend 서비스 확인 중... (프록시를 통해)"
     for i in {1..30}; do
-        if curl -s http://localhost:8080/health >/dev/null 2>&1; then
-            log_success "Backend 서비스가 정상적으로 시작되었습니다."
-            break
+        # Frontend가 먼저 준비되어야 프록시 테스트 가능
+        if curl -s http://localhost:3000 >/dev/null 2>&1; then
+            # Frontend 프록시를 통해 Backend API 확인
+            if curl -s http://localhost:3000/api/health >/dev/null 2>&1; then
+                log_success "Backend 서비스가 정상적으로 시작되었습니다. (프록시 통신 확인)"
+                break
+            else
+                log_warning "Frontend는 실행 중이지만 Backend API 프록시 연결 대기 중... ($i/30)"
+            fi
+        else
+            log_info "Frontend 서비스 대기 중... ($i/30)"
         fi
+        
         if [ $i -eq 30 ]; then
-            log_error "Backend 서비스 시작 실패"
+            log_error "Backend 서비스 시작 실패 또는 프록시 연결 실패"
+            log_info "디버깅 정보:"
+            log_info "  - Frontend 직접 접근: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 2>/dev/null || echo 'FAIL')"
+            log_info "  - Backend 프록시 접근: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/health 2>/dev/null || echo 'FAIL')"
+            log_info "컨테이너 상태 확인: $COMPOSE_CMD ps"
+            $COMPOSE_CMD ps
             exit 1
         fi
         sleep 2
@@ -190,16 +233,20 @@ usage() {
     echo "사용법: $0 [옵션]"
     echo ""
     echo "옵션:"
-    echo "  --clean    기존 이미지를 모두 제거하고 새로 빌드"
-    echo "  --stop     실행 중인 컨테이너만 중지"
-    echo "  --status   현재 실행 상태 확인"
-    echo "  --help     이 도움말 출력"
+    echo "  --clean         기존 이미지를 제거하고 새로 빌드"
+    echo "  --force-clean   🧹 모든 Docker 캐시 및 빌드 캐시 완전 제거 후 빌드"
+    echo "  --stop          실행 중인 컨테이너만 중지"
+    echo "  --status        현재 실행 상태 확인"
+    echo "  --help          이 도움말 출력"
     echo ""
     echo "예시:"
-    echo "  $0              # 일반 배포"
-    echo "  $0 --clean      # 완전 새로 빌드 후 배포"
-    echo "  $0 --stop       # 서비스 중지"
-    echo "  $0 --status     # 상태 확인"
+    echo "  $0                  # 일반 배포"
+    echo "  $0 --clean          # 이미지 제거 후 빌드"
+    echo "  $0 --force-clean    # 🧹 모든 캐시 제거 후 완전 새로 빌드"
+    echo "  $0 --stop           # 서비스 중지"
+    echo "  $0 --status         # 상태 확인"
+    echo ""
+    echo "⚠️  --force-clean은 모든 Docker 캐시를 제거하므로 시간이 오래 걸릴 수 있습니다."
 }
 
 # 메인 실행 로직
@@ -225,6 +272,15 @@ main() {
         --clean)
             check_docker
             cleanup_containers --clean
+            create_data_directory
+            build_images
+            start_containers
+            check_status
+            ;;
+        --force-clean)
+            check_docker
+            FORCE_CLEAN=true
+            cleanup_containers --force-clean
             create_data_directory
             build_images
             start_containers

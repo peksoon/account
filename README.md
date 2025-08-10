@@ -59,7 +59,18 @@ npm run serve
 # Docker 컨테이너 빌드 및 실행 (프록시 구조)
 chmod +x deploy.sh
 ./deploy.sh
+
+# 완전 캐시 제거 후 빌드 (권장: 문제 해결용)
+chmod +x clean_deploy.sh
+./clean_deploy.sh
 ```
+
+#### **배포 옵션**
+
+- `./deploy.sh` - 일반 배포 (기존 캐시 활용)
+- `./deploy.sh --clean` - 이미지 제거 후 빌드
+- `./deploy.sh --force-clean` - 🧹 **모든 Docker 캐시 완전 제거 후 빌드**
+- `./clean_deploy.sh` - 간편 완전 캐시 제거 배포
 
 ### 2. 배포 상태 확인
 
@@ -84,10 +95,12 @@ test_proxy_setup.bat   # Windows
 ### 4. 네트워크 구조 확인
 
 ```bash
-# 내부 네트워크 확인
-docker network ls | grep iksoon-network
+# 네트워크 통신 종합 테스트 (추천)
+./test_network_communication.sh    # Linux/Mac
+test_network_communication.bat     # Windows
 
-# 컨테이너 간 통신 확인
+# 수동 네트워크 확인
+docker network ls | grep iksoon-network
 docker exec iksoon-account-frontend wget -q --spider http://iksoon-backend:8080/health
 ```
 
@@ -107,7 +120,10 @@ docker exec iksoon-account-frontend wget -q --spider http://iksoon-backend:8080/
 │   ├── nginx.conf                   # Nginx 프록시 설정 (/api → backend)
 │   └── Dockerfile                   # 컨테이너 설정
 ├── docker-compose.yml               # 내부 네트워크 & 프록시 구성
-├── deploy.sh                        # 운영 배포 스크립트
+├── deploy.sh                        # 운영 배포 스크립트 (캐시 옵션 지원)
+├── deploy.ps1                       # 운영 배포 스크립트 (Windows)
+├── clean_deploy.sh                  # 완전 캐시 제거 배포 (Linux/Mac)
+├── clean_deploy.bat                 # 완전 캐시 제거 배포 (Windows)
 ├── run_dev.sh                       # 개발 환경 실행 (Linux/Mac)
 └── run_dev.bat                      # 개발 환경 실행 (Windows)
 ```
@@ -170,13 +186,21 @@ docker exec iksoon-account-frontend wget -q --spider http://iksoon-backend:8080/
 
 ## 🔧 트러블슈팅
 
+### Docker 캐시 문제 해결
+
+```bash
+# 🧹 모든 캐시 제거 후 재배포 (문제 해결 1순위)
+./clean_deploy.sh       # Linux/Mac
+clean_deploy.bat        # Windows
+
+# 또는 수동으로 캐시 제거
+./deploy.sh --force-clean    # Linux/Mac
+.\deploy.ps1 -ForceClean     # Windows
+```
+
 ### 프록시 설정 문제 해결
 
 ```bash
-# 프록시 설정 테스트
-./test_proxy_setup.sh   # Linux
-test_proxy_setup.bat    # Windows
-
 # 컨테이너 로그 확인
 docker logs iksoon-account-frontend
 docker logs iksoon-account-backend

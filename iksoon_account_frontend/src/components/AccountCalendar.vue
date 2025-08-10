@@ -1,93 +1,126 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
     <!-- 헤더 영역 -->
-    <div class="container-responsive py-8">
-      <div class="card p-6 mb-8">
+    <div class="container-responsive" :class="isMobile ? 'py-4' : 'py-8'">
+      <div class="card mb-8" :class="isMobile ? 'p-4' : 'p-6'">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
           <!-- 타이틀 및 현재 월 -->
           <div>
             <div class="flex items-center gap-3 mb-2">
-              <div
-                class="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                <DollarSign class="w-6 h-6 text-white" />
+              <div :class="isMobile ? 'w-8 h-8' : 'w-10 h-10'"
+                class="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                <DollarSign :class="isMobile ? 'w-4 h-4' : 'w-6 h-6'" class="text-white" />
               </div>
-              <h1 class="text-3xl font-bold text-gradient">상윤 가족 가계부</h1>
+              <h1 :class="isMobile ? 'text-xl' : 'text-3xl'" class="font-bold text-gradient">상윤 가족 가계부</h1>
             </div>
-            <p class="text-gray-600 text-lg font-medium">{{ currentYear }}년 {{ currentMonth }}월</p>
+            <p :class="isMobile ? 'text-base' : 'text-lg'" class="text-gray-600 font-medium">{{ currentYear }}년 {{ currentMonth }}월</p>
           </div>
 
           <!-- 컨트롤 버튼들 -->
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+          <div class="flex flex-col space-y-3">
             <!-- 달력 모드일 때만 표시 -->
             <template v-if="viewMode === 'calendar'">
-              <el-button @click="goToToday" type="primary" :icon="Calendar" :size="isMobile ? 'default' : 'large'"
-                class="w-full sm:w-auto">
-                오늘
-              </el-button>
-              <el-button-group class="w-full sm:w-auto">
-                <el-button @click="goToPrevMonth" :size="isMobile ? 'default' : 'large'" class="flex-1 sm:flex-none">
-                  ← 이전
+              <!-- 첫 번째 줄: 네비게이션 버튼들 (모바일에서 가로 배치) -->
+              <div class="flex flex-wrap gap-2 justify-center md:justify-end">
+                <el-button @click="goToToday" type="primary" :icon="Calendar" 
+                  :size="isMobile ? 'small' : 'large'"
+                  :class="isMobile ? 'text-xs px-3 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
+                  {{ isMobile ? '오늘' : '오늘' }}
                 </el-button>
-                <el-button @click="goToNextMonth" :size="isMobile ? 'default' : 'large'" class="flex-1 sm:flex-none">
-                  다음 →
+                <el-button-group :class="isMobile ? 'flex-shrink-0' : ''">
+                  <el-button @click="goToPrevMonth" :size="isMobile ? 'small' : 'large'" 
+                    :class="isMobile ? 'text-xs px-2 py-1 min-w-0' : ''">
+                    {{ isMobile ? '←' : '← 이전' }}
+                  </el-button>
+                  <el-button @click="goToNextMonth" :size="isMobile ? 'small' : 'large'"
+                    :class="isMobile ? 'text-xs px-2 py-1 min-w-0' : ''">
+                    {{ isMobile ? '→' : '다음 →' }}
+                  </el-button>
+                </el-button-group>
+                <el-button @click="openAddPopup" type="success" :size="isMobile ? 'small' : 'large'"
+                  :class="isMobile ? 'text-xs px-3 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
+                  {{ isMobile ? '+' : '+ 추가' }}
                 </el-button>
-              </el-button-group>
-              <el-button @click="openAddPopup" type="success" :size="isMobile ? 'default' : 'large'"
-                class="w-full sm:w-auto">
-                + 추가
-              </el-button>
-            </template>
-
-            <!-- 뷰 모드 전환 버튼들 -->
-            <template v-if="viewMode === 'calendar'">
-              <el-button @click="openStatistics" type="info" :icon="BarChart" :size="isMobile ? 'default' : 'large'"
-                class="w-full sm:w-auto">
-                📊 통계
-              </el-button>
-              <el-button @click="openBudgetManager" type="warning" :size="isMobile ? 'default' : 'large'"
-                class="w-full sm:w-auto">
-                💰 기준치 관리
-              </el-button>
+                <el-button @click="openStatistics" type="info" :icon="BarChart" :size="isMobile ? 'small' : 'large'"
+                  :class="isMobile ? 'text-xs px-2 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
+                  {{ isMobile ? '📊' : '📊 통계' }}
+                </el-button>
+                <el-button @click="openBudgetManager" type="warning" :size="isMobile ? 'small' : 'large'"
+                  :class="isMobile ? 'text-xs px-2 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
+                  {{ isMobile ? '💰' : '💰 기준치 관리' }}
+                </el-button>
+              </div>
             </template>
             <template v-else>
-              <el-button @click="goBackToCalendar" type="primary" :icon="Calendar"
-                :size="isMobile ? 'default' : 'large'" class="w-full sm:w-auto">
-                📅 달력으로 돌아가기
-              </el-button>
+              <div class="flex justify-center md:justify-end">
+                <el-button @click="goBackToCalendar" type="primary" :icon="Calendar"
+                  :size="isMobile ? 'default' : 'large'" class="w-full sm:w-auto">
+                  📅 달력으로 돌아가기
+                </el-button>
+              </div>
             </template>
           </div>
         </div>
 
         <!-- 월별 통계 카드 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6" v-if="monthlyStats">
-          <div class="bg-gradient-to-r from-green-400 to-green-500 text-white p-4 rounded-xl">
-            <div class="flex items-center">
-              <TrendingUp class="w-8 h-8 mr-3" />
-              <div>
-                <p class="text-green-100 text-sm">총 수입</p>
-                <p class="text-xl font-bold">{{ formatMoney(monthlyStats.totalIncome) }}원</p>
+        <div v-if="monthlyStats" :class="isMobile ? 'mt-4' : 'mt-6'">
+          <!-- 모바일: 유연한 가로 레이아웃 -->
+          <div v-if="isMobile" class="flex gap-2 overflow-x-auto pb-1">
+            <div class="bg-gradient-to-r from-green-400 to-green-500 text-white px-3 py-2 rounded-md flex-1 min-w-0">
+              <div class="text-center">
+                <p class="text-green-100 text-xs leading-tight truncate">총 수입</p>
+                <p class="text-xs font-bold leading-tight mt-0.5 truncate">{{ formatMoney(monthlyStats.totalIncome) }}원</p>
               </div>
             </div>
-          </div>
 
-          <div class="bg-gradient-to-r from-red-400 to-red-500 text-white p-4 rounded-xl">
-            <div class="flex items-center">
-              <TrendingDown class="w-8 h-8 mr-3" />
-              <div>
-                <p class="text-red-100 text-sm">총 지출</p>
-                <p class="text-xl font-bold">{{ formatMoney(monthlyStats.totalExpense) }}원</p>
+            <div class="bg-gradient-to-r from-red-400 to-red-500 text-white px-3 py-2 rounded-md flex-1 min-w-0">
+              <div class="text-center">
+                <p class="text-red-100 text-xs leading-tight truncate">총 지출</p>
+                <p class="text-xs font-bold leading-tight mt-0.5 truncate">{{ formatMoney(monthlyStats.totalExpense) }}원</p>
               </div>
             </div>
-          </div>
 
-          <div class="bg-gradient-to-r from-blue-400 to-blue-500 text-white p-4 rounded-xl">
-            <div class="flex items-center">
-              <Wallet class="w-8 h-8 mr-3" />
-              <div>
-                <p class="text-blue-100 text-sm">잔액</p>
-                <p class="text-xl font-bold" :class="monthlyStats.balance >= 0 ? 'text-white' : 'text-yellow-200'">
+            <div class="bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 py-2 rounded-md flex-1 min-w-0">
+              <div class="text-center">
+                <p class="text-blue-100 text-xs leading-tight truncate">잔액</p>
+                <p class="text-xs font-bold leading-tight mt-0.5 truncate" :class="monthlyStats.balance >= 0 ? 'text-white' : 'text-yellow-200'">
                   {{ formatMoney(monthlyStats.balance) }}원
                 </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 데스크톱: 기존 그리드 레이아웃 -->
+          <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-gradient-to-r from-green-400 to-green-500 text-white p-4 rounded-xl">
+              <div class="flex items-center">
+                <TrendingUp class="w-8 h-8 mr-3" />
+                <div>
+                  <p class="text-green-100 text-sm">총 수입</p>
+                  <p class="text-xl font-bold">{{ formatMoney(monthlyStats.totalIncome) }}원</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-red-400 to-red-500 text-white p-4 rounded-xl">
+              <div class="flex items-center">
+                <TrendingDown class="w-8 h-8 mr-3" />
+                <div>
+                  <p class="text-red-100 text-sm">총 지출</p>
+                  <p class="text-xl font-bold">{{ formatMoney(monthlyStats.totalExpense) }}원</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-blue-400 to-blue-500 text-white p-4 rounded-xl">
+              <div class="flex items-center">
+                <Wallet class="w-8 h-8 mr-3" />
+                <div>
+                  <p class="text-blue-100 text-sm">잔액</p>
+                  <p class="text-xl font-bold" :class="monthlyStats.balance >= 0 ? 'text-white' : 'text-yellow-200'">
+                    {{ formatMoney(monthlyStats.balance) }}원
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -97,12 +130,12 @@
       <!-- 달력 모드 -->
       <template v-if="viewMode === 'calendar'">
         <!-- 달력 영역 -->
-        <div class="card p-6 mb-8">
+        <div class="card mb-8" :class="isMobile ? 'p-2' : 'p-6'">
           <FullCalendar ref="calendar" :options="calendarOptions" class="modern-calendar" />
         </div>
 
         <!-- 선택된 날짜 상세 정보 -->
-        <div v-if="selectedDateData.length" class="card p-6 animate-slide-up">
+        <div v-if="selectedDateData.length" class="card animate-slide-up" :class="isMobile ? 'p-4' : 'p-6'">
           <div class="flex items-center mb-4">
             <Calendar class="w-6 h-6 text-primary-500 mr-2" />
             <h2 class="text-xl font-bold text-gray-800">{{ selectedDate }} 가계부</h2>
@@ -323,14 +356,16 @@ export default {
         return dayNames[arg.date.getDay()];
       },
       // 모바일 최적화
-      aspectRatio: window.innerWidth < 768 ? 1.0 : 1.35,
+      aspectRatio: window.innerWidth < 768 ? 0.8 : 1.35, // 모바일에서 더 세로로 압축
       eventTextColor: '#fff',
       eventDisplay: 'block',
       dayMaxEventRows: window.innerWidth < 768 ? 2 : 3,
       dayHeaderFormat: window.innerWidth < 768 ? { weekday: 'narrow' } : { weekday: 'short' },
+      fixedWeekCount: false, // 주 수를 고정하지 않음 (공간 절약)
       dayCellContent: (arg) => {
-        // 모바일에서는 날짜 숫자만 표시
-        return { html: `<div class="text-sm font-medium">${arg.dayNumberText.replace('일', '')}</div>` };
+        // 모바일에서는 날짜 숫자만 작게 표시
+        const fontSize = window.innerWidth < 768 ? 'text-xs' : 'text-sm';
+        return { html: `<div class="${fontSize} font-medium">${arg.dayNumberText.replace('일', '')}</div>` };
       }
     });
 
@@ -794,30 +829,50 @@ export default {
 /* 모바일 최적화 */
 @media (max-width: 768px) {
   .modern-calendar :deep(.fc-theme-standard th) {
-    padding: 8px 4px;
-    font-size: 0.75rem;
+    padding: 6px 2px;
+    font-size: 0.7rem;
+    font-weight: 600;
   }
 
   .modern-calendar :deep(.fc-daygrid-day-number) {
-    font-size: 0.875rem;
-    padding: 4px;
+    font-size: 0.75rem;
+    padding: 2px;
+    line-height: 1;
   }
 
   .modern-calendar :deep(.fc-daygrid-event) {
-    font-size: 0.75rem;
-    padding: 1px 2px;
-    margin: 1px 0;
+    font-size: 0.65rem;
+    padding: 1px 3px;
+    margin: 0.5px 1px;
+    line-height: 1.2;
   }
 
   .modern-calendar :deep(.fc-event-title) {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.2;
   }
 
   .modern-calendar :deep(.fc-daygrid-day-frame) {
-    min-height: 3rem;
+    min-height: 2.5rem;
+  }
+
+  .modern-calendar :deep(.fc-daygrid-day-top) {
+    padding: 2px;
+  }
+
+  .modern-calendar :deep(.fc-scrollgrid-sync-table) {
+    font-size: 0.7rem;
+  }
+
+  .modern-calendar :deep(.fc-daygrid-day-events) {
+    margin-top: 1px;
+  }
+
+  .modern-calendar :deep(.fc-theme-standard td) {
+    border-width: 0.5px;
   }
 }
 
@@ -892,10 +947,11 @@ export default {
   border-color: #10b981 !important;
   color: white !important;
   font-weight: 600 !important;
-  border-radius: 4px !important;
-  margin: 1px 0 !important;
-  padding: 1px 4px !important;
-  font-size: 0.7rem !important;
+  border-radius: 3px !important;
+  margin: 0.5px 0 !important;
+  padding: 1px 3px !important;
+  font-size: 0.65rem !important;
+  line-height: 1.2 !important;
 }
 
 .modern-calendar :deep(.expense-total) {
@@ -903,24 +959,29 @@ export default {
   border-color: #ef4444 !important;
   color: white !important;
   font-weight: 600 !important;
-  border-radius: 4px !important;
-  margin: 1px 0 !important;
-  padding: 1px 4px !important;
-  font-size: 0.7rem !important;
+  border-radius: 3px !important;
+  margin: 0.5px 0 !important;
+  padding: 1px 3px !important;
+  font-size: 0.65rem !important;
+  line-height: 1.2 !important;
 }
 
-/* 반응형 조정 */
+/* 모바일에서 이벤트 스타일 더 컴팩트하게 */
 @media (max-width: 768px) {
-  .modern-calendar :deep(.fc-event) {
-    font-size: 10px;
-    padding: 1px 4px;
+  .modern-calendar :deep(.income-total) {
+    font-size: 0.6rem !important;
+    padding: 0.5px 2px !important;
+    margin: 0.2px 0 !important;
   }
 
-  .modern-calendar :deep(.fc-daygrid-day-number) {
-    padding: 4px;
-    font-size: 14px;
+  .modern-calendar :deep(.expense-total) {
+    font-size: 0.6rem !important;
+    padding: 0.5px 2px !important;
+    margin: 0.2px 0 !important;
   }
 }
+
+
 
 /* 애니메이션 클래스 */
 .animate-slide-up {
@@ -943,5 +1004,40 @@ export default {
 .bg-gradient-to-r:hover {
   transform: translateY(-2px);
   transition: transform 0.2s ease;
+}
+
+/* 모바일 컨테이너 최적화 */
+@media (max-width: 768px) {
+  .container-responsive {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  .card {
+    border-radius: 0.5rem;
+  }
+}
+
+/* 매우 작은 화면 최적화 (320px 이하) */
+@media (max-width: 320px) {
+  .container-responsive {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  /* 통계 카드 간격 더 줄이기 */
+  .flex.gap-2 {
+    gap: 0.25rem;
+  }
+  
+  /* 카드 패딩 더 줄이기 */
+  .px-3.py-2 {
+    padding: 0.375rem 0.5rem;
+  }
+  
+  /* 폰트 크기 더 작게 */
+  .text-xs {
+    font-size: 0.65rem;
+  }
 }
 </style>
