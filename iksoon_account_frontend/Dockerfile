@@ -23,11 +23,11 @@ RUN npm run build
 # 실행용 Nginx 이미지
 FROM nginx:alpine
 
-# Nginx 설정 파일 복사
-COPY nginx.conf /etc/nginx/nginx.conf
-
 # 빌드된 Vue.js 앱을 Nginx 서빙 디렉토리로 복사
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Nginx 설정 파일 복사 (builder stage에서 복사)
+COPY --from=builder /app/nginx.conf /etc/nginx/nginx.conf
 
 # 포트 3000 노출
 EXPOSE 3000
