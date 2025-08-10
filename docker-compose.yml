@@ -1,32 +1,48 @@
 version: '3.8'
 
+# 내부 네트워크 정의
+networks:
+  iksoon-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
 services:
-  # Backend Service
+  # Backend Service (내부 네트워크만 사용, 외부 노출 없음)
   iksoon-backend:
     build:
       context: ./iksoon_account_backend
       dockerfile: Dockerfile
     container_name: iksoon-account-backend
-    network_mode: host
     restart: unless-stopped
+    networks:
+      - iksoon-network
     volumes:
       # 데이터베이스 파일 영구 저장 (운영용 /db 디렉토리에 마운트)
       - /db:/db
+    expose:
+      - "8080"  # 내부 네트워크에서만 접근 가능
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    environment:
+      - GIN_MODE=release
 
-  # Frontend Service  
+  # Frontend Service (외부 포트 3000만 노출, 프록시 역할)
   iksoon-frontend:
     build:
       context: ./iksoon_account_frontend
       dockerfile: Dockerfile
     container_name: iksoon-account-frontend
-    network_mode: host
     restart: unless-stopped
+    networks:
+      - iksoon-network
+    ports:
+      - "3000:3000"  # 외부에서 Frontend만 접근 가능
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s

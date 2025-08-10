@@ -1,15 +1,14 @@
-// API 설정 파일 - 환경변수 기반
+// API 설정 파일 - 프록시 기반
 export const getApiBaseUrl = () => {
-  // 환경변수에서 API URL 가져오기 (환경별 .env 파일에서 설정)
-  const apiUrl = process.env.VUE_APP_BACKEND_API_BASE_URL;
-  
+  // 프로덕션 환경에서는 Nginx 프록시를 통해 /api로 접근
   if (process.env.NODE_ENV === 'production') {
-    console.log('🚀 Production mode: Using', apiUrl);
+    console.log('🚀 Production mode: Using Nginx proxy /api');
+    return '/api'; // Nginx 프록시를 통한 상대경로
   } else {
-    console.log('🛠️ Development mode: Using', apiUrl);
+    // 개발 환경에서는 직접 localhost 백엔드 접근
+    console.log('🛠️ Development mode: Using localhost backend');
+    return 'http://localhost:8080'; // 개발용 직접 접근
   }
-  
-  return apiUrl || 'http://localhost:8080'; // 기본값
 };
 
 export default { getApiBaseUrl };
