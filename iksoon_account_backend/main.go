@@ -3,20 +3,29 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
+	"iksoon_account_backend/config"
 	"iksoon_account_backend/database"
 	"iksoon_account_backend/handlers"
 	"iksoon_account_backend/utils"
 )
 
 func main() {
-	// 데이터베이스 초기화
-	dbPath := os.Getenv("SQLITE_DB_PATH")
-	if dbPath == "" {
-		dbPath = "./account_app.db"
+	// 설정 로드 및 초기화
+	cfg := config.GetConfig()
+
+	// 설정 유효성 검사
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("설정 오류: %v", err)
 	}
 
+	// 디버그용 설정 출력 (DEBUG 레벨일 때만)
+	if cfg.LogLevel == "DEBUG" {
+		cfg.PrintConfig()
+	}
+
+	// 데이터베이스 초기화
+	dbPath := cfg.GetDBPath()
 	db, err := database.InitDB(dbPath)
 	if err != nil {
 		utils.Error("데이터베이스 초기화 오류: %v", err)
@@ -126,6 +135,6 @@ func main() {
 	})))
 
 	// 서버 시작
-	utils.LogStartup("8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	utils.LogStartup(cfg.Port)
+	log.Fatal(http.ListenAndServe(":"+cfg.Port, nil))
 }

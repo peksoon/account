@@ -23,13 +23,16 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates sqlite
 
 # 작업 디렉토리 설정
-WORKDIR /root/
+WORKDIR /app
 
 # 빌드된 바이너리 복사
 COPY --from=builder /app/main .
 
-# 데이터베이스 디렉토리 생성
-RUN mkdir -p /root/data
+# 설정 파일 복사
+COPY --from=builder /app/config.env.production .
+
+# DB 디렉토리 생성 (운영용)
+RUN mkdir -p /db
 
 # 포트 8080 노출
 EXPOSE 8080

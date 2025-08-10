@@ -48,10 +48,11 @@ go mod tidy
 ### 개발 서버 실행
 
 ```bash
-# 개발 환경으로 실행
-set ENV=development  # Windows
-export ENV=development  # Linux/Mac
+# 개발 환경으로 서버 실행 (config.env.development 자동 로드)
+go run main.go
 
+# 또는 특정 설정 파일 사용
+cp config.env.development config.env
 go run main.go
 ```
 
@@ -61,19 +62,61 @@ go run main.go
 # 빌드
 go build -o account_server .
 
-# 실행
-set ENV=production  # Windows
+# 운영 환경 실행 (config.env.production 자동 로드)
 ./account_server  # Linux/Mac
+account_server.exe  # Windows
 ```
 
 ## 📝 환경 변수
 
+## 🔧 환경 설정
+
+### 설정 파일 구조
+
+애플리케이션은 환경별 설정 파일을 사용합니다:
+
+- `config.env.development` - 개발 환경 설정
+- `config.env.production` - 운영 환경 설정
+
+### 개발 환경 설정 (`config.env.development`)
+
 ```bash
-# 환경 설정
-ENV=development          # 실행 환경 (development/production)
-LOG_LEVEL=DEBUG         # 로그 레벨 (DEBUG/INFO/WARNING/ERROR)
-SQLITE_DB_PATH=./account_app.db  # 데이터베이스 파일 경로
+# 서버 설정
+PORT=8080
+
+# 데이터베이스 설정 (개발 환경)
+DB_PATH=./data/account_app_dev.db
+
+# 로깅 설정 (개발 시 상세 로그)
+LOG_LEVEL=DEBUG
+
+# 기타 설정
+MAX_CONNECTIONS=50
 ```
+
+### 운영 환경 설정 (`config.env.production`)
+
+```bash
+# 서버 설정
+PORT=8080
+
+# 데이터베이스 설정 (운영 환경 - Docker 볼륨 마운트용)
+DB_PATH=/db/account_app.db
+
+# 로깅 설정 (운영 시 에러만 로깅)
+LOG_LEVEL=ERROR
+
+# 기타 설정
+MAX_CONNECTIONS=200
+```
+
+### 설정 우선순위
+
+1. 환경변수 (최우선)
+2. config.env.production
+3. config.env.development
+4. config.env
+5. 기본값 (코드 내 설정)
 
 ## 📊 로그 시스템
 
@@ -86,15 +129,15 @@ SQLITE_DB_PATH=./account_app.db  # 데이터베이스 파일 경로
 
 ### 로그 설정
 
-```bash
-# 개발 환경 - 모든 로그 출력
-set ENV=development
-set LOG_LEVEL=DEBUG
+로그 레벨은 설정 파일 또는 환경변수로 제어합니다:
 
-# 운영 환경 - 에러 로그만 출력
-set ENV=production
-set LOG_LEVEL=ERROR
+```bash
+# 환경변수로 로그 레벨 오버라이드
+export LOG_LEVEL=DEBUG  # 개발 시
+export LOG_LEVEL=ERROR  # 운영 시
 ```
+
+**주의**: 환경변수는 설정 파일보다 우선순위가 높습니다.
 
 ## 🚨 에러 처리 시스템
 
@@ -277,20 +320,48 @@ utils.SendError(w, apiErrors.ErrDatabaseConnection.WithDetails("카테고리 조
 
 ## 🚀 배포
 
-### Docker 배포 (예정)
+### Docker 단일 실행
 
-```dockerfile
-FROM golang:1.21-alpine AS builder
-WORKDIR /app
-COPY . .
-RUN go build -o account_server .
+#### 개발용 Docker 실행
 
-FROM alpine:latest
-WORKDIR /root/
-COPY --from=builder /app/account_server .
-EXPOSE 8080
-CMD ["./account_server"]
+```bash
+# Docker 빌드
+docker build -t iksoon-backend .
+
+# 개발용 Docker 실행 (로컬 데이터 디렉토리 사용)
+docker run -p 8080:8080 \
+  -v $(pwd)/data:/db \
+  -e LOG_LEVEL=DEBUG \
+  iksoon-backend
 ```
+
+#### 운영용 Docker 실행
+
+```bash
+# 운영용 실행 (config.env.production 자동 로드)
+docker run -p 8080:8080 \
+  -v /path/to/production/data:/db \
+  iksoon-backend
+```
+
+### Docker Compose 실행
+
+```bash
+# 전체 서비스 실행 (운영 환경 설정 적용)
+docker-compose up -d
+
+# 로그 확인
+docker-compose logs -f
+
+# 데이터 디렉토리 확인
+ls -la ./data/  # 호스트의 ./data가 컨테이너 /db에 마운트됨
+```
+
+**주요 변경사항:**
+
+- DB 경로: `./data/account_app.db` → `/db/account_app.db` (Docker 내부)
+- 볼륨 마운트: `./data:/db` (호스트:컨테이너)
+- 운영 설정: `config.env.production` 자동 로드
 
 ## 📝 로그 예시
 

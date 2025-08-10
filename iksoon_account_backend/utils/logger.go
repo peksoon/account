@@ -45,19 +45,11 @@ func init() {
 	// 환경변수에서 로그 레벨 설정 (기본값: INFO)
 	level := getLogLevelFromEnv()
 
-	// 개발 환경 여부 확인
-	isDev := os.Getenv("ENV") == "development" || os.Getenv("ENV") == "dev" || os.Getenv("ENV") == ""
-
 	defaultLogger = &Logger{
 		level:   level,
 		logger:  log.New(os.Stdout, "", 0), // 커스텀 포맷을 위해 기본 플래그 제거
 		prefix:  "[ACCOUNT_API]",
 		enabled: true,
-	}
-
-	// 운영환경에서는 ERROR 레벨만 출력
-	if !isDev {
-		defaultLogger.level = ERROR
 	}
 }
 
@@ -233,11 +225,4 @@ func LogStartup(port string) {
 	Info("서버가 %s 포트에서 실행 중입니다...", port)
 	Info("새로운 구조의 API가 적용되었습니다.")
 	Info("로그 레벨: %s", logLevelStrings[defaultLogger.level])
-
-	// 환경 정보 로그
-	env := os.Getenv("ENV")
-	if env == "" {
-		env = "development"
-	}
-	Info("실행 환경: %s", env)
 }
