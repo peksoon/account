@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 import { formatDateToLocalISOString } from '../utils';
+import { getApiBaseUrl } from '../config';
 
-// 환경변수에서 API 주소를 가져오고, 기본값은 운영 서버 IP
-const BACKEND_API_BASE_URL = process.env.VUE_APP_BACKEND_API_BASE_URL || 'http://133.186.153.179:8080';
+// 설정 파일에서 API URL 가져오기 (확실한 운영 서버 연결)
+const BACKEND_API_BASE_URL = getApiBaseUrl();
+console.log('AccountStore API URL:', BACKEND_API_BASE_URL);
 
 export const useAccountStore = defineStore('account', {
   state: () => ({

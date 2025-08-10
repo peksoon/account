@@ -13,10 +13,11 @@ RUN npm ci
 # 소스 코드 복사
 COPY . .
 
-# 환경변수 설정 (빌드 시점에 적용)
-# 운영 서버 IP로 직접 API 호출
-ENV VUE_APP_BACKEND_API_BASE_URL=http://133.186.153.179:8080
+# 환경변수 설정 (운영환경으로 설정)
 ENV NODE_ENV=production
+
+# 환경 확인 (디버깅용)
+RUN echo "NODE_ENV: $NODE_ENV"
 
 # Vue.js 애플리케이션 빌드
 RUN npm run build

@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { getApiBaseUrl } from '../config'
 
-const API_BASE_URL = process.env.VUE_APP_BACKEND_API_BASE_URL || 'http://133.186.153.179:8080'
+const API_BASE_URL = getApiBaseUrl()
+console.log('BudgetStore API URL:', API_BASE_URL)
 
 export const useBudgetStore = defineStore('budget', {
   state: () => ({

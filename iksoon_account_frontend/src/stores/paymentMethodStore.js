@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
+import { getApiBaseUrl } from '../config';
 
-const BACKEND_API_BASE_URL = process.env.VUE_APP_BACKEND_API_BASE_URL || 'http://133.186.153.179:8080';
+const BACKEND_API_BASE_URL = getApiBaseUrl();
+console.log('PaymentMethodStore API URL:', BACKEND_API_BASE_URL);
 
 export const usePaymentMethodStore = defineStore('paymentMethod', {
   state: () => ({
