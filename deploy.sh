@@ -40,14 +40,32 @@ check_docker() {
     log_info "Docker 설치 상태 확인 중..."
     if ! command -v docker &> /dev/null; then
         log_error "Docker가 설치되어 있지 않습니다."
-        log_info "Docker 설치: https://docs.docker.com/get-docker/"
+        log_info "Ubuntu 24.04 Docker 설치 방법:"
+        log_info "  sudo apt update"
+        log_info "  sudo apt install docker.io docker-compose-v2 -y"
+        log_info "  sudo systemctl enable docker"
+        log_info "  sudo usermod -aG docker \$USER"
+        log_info "  # 로그아웃 후 재로그인 필요"
         exit 1
     fi
     
-    if ! command -v docker-compose &> /dev/null; then
+    # Docker Compose v2 확인 (Ubuntu 24.04 기본)
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_CMD="docker-compose"
+    elif docker compose version &> /dev/null; then
+        COMPOSE_CMD="docker compose"
+    else
         log_error "Docker Compose가 설치되어 있지 않습니다."
-        log_info "Docker Compose 설치: https://docs.docker.com/compose/install/"
+        log_info "설치 명령: sudo apt install docker-compose-v2 -y"
         exit 1
+    fi
+    
+    # Go 설치 확인 (go.sum 생성용)
+    if ! command -v go &> /dev/null; then
+        log_warning "Go가 설치되어 있지 않습니다. go.sum 자동 생성을 건너뜁니다."
+        GO_AVAILABLE=false
+    else
+        GO_AVAILABLE=true
     fi
     
     log_success "Docker 및 Docker Compose가 설치되어 있습니다."
@@ -60,7 +78,7 @@ cleanup_containers() {
     # 실행 중인 컨테이너 확인 및 정지
     if docker ps | grep -q "${PROJECT_NAME}"; then
         log_warning "실행 중인 ${PROJECT_NAME} 컨테이너를 정지합니다."
-        docker-compose down
+        $COMPOSE_CMD down
     fi
     
     # 기존 이미지 제거 (선택적)
@@ -102,7 +120,7 @@ build_images() {
 # 함수: 컨테이너 실행
 start_containers() {
     log_info "컨테이너 시작 중..."
-    docker-compose up -d
+    $COMPOSE_CMD up -d
     
     # 헬스체크 대기
     log_info "서비스 시작 대기 중..."
@@ -140,15 +158,15 @@ start_containers() {
 # 함수: 컨테이너 상태 확인
 check_status() {
     log_info "컨테이너 상태 확인 중..."
-    docker-compose ps
+    $COMPOSE_CMD ps
     
     echo ""
     log_info "서비스 접속 정보:"
     echo "  🌐 Frontend: http://localhost:3000"
     echo "  🔧 Backend API: http://localhost:8080"
     echo ""
-    log_info "로그 확인: docker-compose logs -f"
-    log_info "서비스 중지: docker-compose down"
+    log_info "로그 확인: $COMPOSE_CMD logs -f"
+    log_info "서비스 중지: $COMPOSE_CMD down"
 }
 
 # 함수: 사용법 출력
