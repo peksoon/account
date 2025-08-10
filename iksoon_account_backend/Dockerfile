@@ -14,7 +14,9 @@ RUN go mod download
 COPY . .
 
 # 애플리케이션 빌드
+RUN apk add --no-cache build-base
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
+
 
 # 실행용 최소 이미지
 FROM alpine:latest

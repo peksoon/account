@@ -7,11 +7,15 @@ WORKDIR /app
 # package.json과 package-lock.json 복사
 COPY package*.json ./
 
-# 의존성 설치
-RUN npm ci --only=production
+# 의존성 설치 (빌드에 필요한 devDependencies 포함)
+RUN npm ci
 
 # 소스 코드 복사
 COPY . .
+
+# 환경변수 설정 (빌드 시점에 적용)
+ENV VUE_APP_BACKEND_API_BASE_URL=http://localhost:8080
+ENV NODE_ENV=production
 
 # Vue.js 애플리케이션 빌드
 RUN npm run build
