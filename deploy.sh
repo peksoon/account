@@ -104,6 +104,22 @@ create_data_directory() {
 build_images() {
     log_info "Docker 이미지 빌드 시작..."
     
+    # Backend 빌드 준비 (go.sum 파일 확인)
+    log_info "Backend 빌드 환경 준비 중..."
+    if [ ! -f "./iksoon_account_backend/go.sum" ] && [ "$GO_AVAILABLE" = true ]; then
+        log_warning "go.sum 파일이 없습니다. 생성 중..."
+        cd ./iksoon_account_backend
+        go mod tidy
+        cd ..
+        log_success "go.sum 파일 생성 완료"
+    elif [ ! -f "./iksoon_account_backend/go.sum" ]; then
+        log_error "go.sum 파일이 없고 Go도 설치되어 있지 않습니다."
+        log_info "해결 방법:"
+        log_info "1. Go 설치: sudo apt install golang-go -y"
+        log_info "2. 또는 개발 환경에서 go.sum 파일을 생성하여 복사"
+        exit 1
+    fi
+    
     # Backend 이미지 빌드
     log_info "Backend 이미지 빌드 중..."
     docker build -t ${BACKEND_IMAGE} ./iksoon_account_backend/
