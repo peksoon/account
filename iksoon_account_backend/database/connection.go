@@ -34,6 +34,12 @@ func InitDB(dbPath string) (*DB, error) {
 		return nil, fmt.Errorf("외래키 활성화 오류: %v", err)
 	}
 
+	// WAL 모드 활성화 (성능 향상)
+	_, err = conn.Exec("PRAGMA journal_mode = WAL;")
+	if err != nil {
+		return nil, fmt.Errorf("WAL 모드 활성화 오류: %v", err)
+	}
+
 	db := &DB{Conn: conn}
 
 	// 테이블 생성 순서 중요 (외래키 제약조건 때문에)
@@ -241,6 +247,18 @@ func (db *DB) createInAccountTable() error {
 
 // 기본 데이터 삽입 메서드들
 func (db *DB) insertDefaultCategories() error {
+	// 기존 카테고리 데이터 존재 여부 확인 (한번만 실행되도록)
+	var count int
+	err := db.Conn.QueryRow("SELECT COUNT(*) FROM categories").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("카테고리 개수 확인 오류: %v", err)
+	}
+
+	// 이미 기본 데이터가 있으면 스킵
+	if count > 0 {
+		return nil
+	}
+
 	// 지출 카테고리
 	outCategories := []string{
 		"식비", "교통비", "생활용품", "의료비", "교육비",
@@ -279,6 +297,18 @@ func (db *DB) insertDefaultCategories() error {
 
 // 기본 사용자 데이터 삽입
 func (db *DB) insertDefaultUsers() error {
+	// 기존 사용자 데이터 존재 여부 확인 (한번만 실행되도록)
+	var count int
+	err := db.Conn.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("사용자 개수 확인 오류: %v", err)
+	}
+
+	// 이미 기본 데이터가 있으면 스킵
+	if count > 0 {
+		return nil
+	}
+
 	defaultUsers := []string{"관리자", "손님"}
 
 	for _, userName := range defaultUsers {
@@ -294,6 +324,18 @@ func (db *DB) insertDefaultUsers() error {
 }
 
 func (db *DB) insertDefaultPaymentMethods() error {
+	// 기존 데이터 존재 여부 확인 (한번만 실행되도록)
+	var count int
+	err := db.Conn.QueryRow("SELECT COUNT(*) FROM payment_methods WHERE parent_id IS NULL").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("결제수단 개수 확인 오류: %v", err)
+	}
+
+	// 이미 기본 데이터가 있으면 스킵
+	if count > 0 {
+		return nil
+	}
+
 	// 1단계: 기본 카테고리 (parent) 삽입
 	defaultCategories := []string{"카드", "계좌이체", "현금", "기타"}
 
@@ -346,6 +388,18 @@ func (db *DB) getPaymentMethodIDByName(name string) (int, error) {
 }
 
 func (db *DB) insertDefaultDepositPaths() error {
+	// 기존 입금경로 데이터 존재 여부 확인 (한번만 실행되도록)
+	var count int
+	err := db.Conn.QueryRow("SELECT COUNT(*) FROM deposit_paths").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("입금경로 개수 확인 오류: %v", err)
+	}
+
+	// 이미 기본 데이터가 있으면 스킵
+	if count > 0 {
+		return nil
+	}
+
 	// 기본 입금경로 삽입
 	defaultPaths := []string{
 		"급여계좌",

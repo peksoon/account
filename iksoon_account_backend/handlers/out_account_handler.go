@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
+	"iksoon_account_backend/database"
 	apiErrors "iksoon_account_backend/errors"
 	"iksoon_account_backend/models"
 	"iksoon_account_backend/utils"
@@ -49,6 +51,13 @@ func (h *OutAccountHandler) InsertOutAccountHandler(w http.ResponseWriter, r *ht
 	}
 
 	utils.Debug("지출 데이터 삽입 요청: %+v", req)
+
+	// 외래키 참조 데이터 존재 여부 검증
+	if err := h.validateOutAccountReferences(req.CategoryID, req.PaymentMethodID); err != nil {
+		utils.LogError("외래키 검증", err)
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, err.Error())
+		return
+	}
 
 	// 입력 검증
 	if req.Date == "" {
@@ -122,6 +131,13 @@ func (h *OutAccountHandler) InsertOutAccountWithBudgetHandler(w http.ResponseWri
 	}
 
 	utils.Debug("기준치 포함 지출 데이터 삽입 요청: %+v", req)
+
+	// 외래키 참조 데이터 존재 여부 검증
+	if err := h.validateOutAccountReferences(req.CategoryID, req.PaymentMethodID); err != nil {
+		utils.LogError("외래키 검증", err)
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, err.Error())
+		return
+	}
 
 	// 입력 검증
 	if req.Date == "" {
@@ -330,4 +346,28 @@ func (h *OutAccountHandler) DeleteOutAccountHandler(w http.ResponseWriter, r *ht
 	}
 
 	utils.SendSuccessResponse(w, response)
+}
+
+// validateOutAccountReferences 지출 데이터의 외래키 참조 검증
+func (h *OutAccountHandler) validateOutAccountReferences(categoryID, paymentMethodID int) error {
+	db := h.DB.(*database.DB)
+
+	// 카테고리 존재 여부 확인
+	var categoryExists bool
+	err := db.Conn.QueryRow("SELECT 1 FROM categories WHERE id = ? AND type = 'out' AND is_active = 1", categoryID).Scan(&categoryExists)
+	if err != nil {
+		utils.Debug("카테고리 검증 실패: categoryID=%d, err=%v", categoryID, err)
+		return fmt.Errorf("존재하지 않거나 비활성화된 지출 카테고리입니다 (ID: %d)", categoryID)
+	}
+
+	// 결제수단 존재 여부 확인
+	var paymentMethodExists bool
+	err = db.Conn.QueryRow("SELECT 1 FROM payment_methods WHERE id = ? AND is_active = 1", paymentMethodID).Scan(&paymentMethodExists)
+	if err != nil {
+		utils.Debug("결제수단 검증 실패: paymentMethodID=%d, err=%v", paymentMethodID, err)
+		return fmt.Errorf("존재하지 않거나 비활성화된 결제수단입니다 (ID: %d)", paymentMethodID)
+	}
+
+	utils.Debug("외래키 검증 성공: categoryID=%d, paymentMethodID=%d", categoryID, paymentMethodID)
+	return nil
 }

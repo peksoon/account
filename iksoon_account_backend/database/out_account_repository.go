@@ -14,6 +14,7 @@ func (db *DB) InsertOutAccount(date, user string, money, categoryID int, keyword
 	uuidStr := uuid.New().String()
 	parsedDate, err := utils.ParseDateTimeKST(date)
 	if err != nil {
+		utils.LogError("지출 데이터 날짜 파싱", err)
 		return fmt.Errorf("날짜 파싱 오류: %v", err)
 	}
 	formattedDate := utils.FormatDateTimeKST(parsedDate)
@@ -22,10 +23,19 @@ func (db *DB) InsertOutAccount(date, user string, money, categoryID int, keyword
     INSERT INTO out_account_data (uuid, date, money, user, category_id, keyword_id, payment_method_id, memo, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
 
+	// 디버그용 상세 로깅
+	utils.Debug("지출 데이터 삽입 시도: UUID=%s, Date=%s, User=%s, Money=%d, CategoryID=%d, KeywordID=%v, PaymentMethodID=%d, Memo=%s",
+		uuidStr, formattedDate, user, money, categoryID, keywordID, paymentMethodID, memo)
+
 	_, err = db.Conn.Exec(insertQuery, uuidStr, formattedDate, money, user, categoryID, keywordID, paymentMethodID, memo)
 	if err != nil {
+		utils.LogError("지출 데이터 SQL 실행", err)
+		utils.Debug("실패한 SQL: %s", insertQuery)
+		utils.Debug("실패한 파라미터: [%s, %s, %d, %s, %d, %v, %d, %s]",
+			uuidStr, formattedDate, money, user, categoryID, keywordID, paymentMethodID, memo)
 		return fmt.Errorf("지출 데이터 삽입 오류: %v", err)
 	}
+	utils.Debug("지출 데이터 삽입 성공: UUID=%s", uuidStr)
 	return nil
 }
 
