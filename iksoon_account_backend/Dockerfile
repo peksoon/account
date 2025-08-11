@@ -21,8 +21,8 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
 # 실행용 최소 이미지
 FROM alpine:latest
 
-# 필수 패키지 설치 (SQLite 지원)
-RUN apk --no-cache add ca-certificates sqlite
+# 필수 패키지 설치 (SQLite 지원, 시간대 정보)
+RUN apk --no-cache add ca-certificates sqlite tzdata
 
 # 작업 디렉토리 설정
 WORKDIR /app
@@ -35,6 +35,9 @@ COPY --from=builder /app/config.env.production ./config.env.production
 
 # DB 디렉토리 생성 (운영용)
 RUN mkdir -p /db
+
+# 시간대 설정
+ENV TZ=Asia/Seoul
 
 # 포트 8080 노출
 EXPOSE 8080

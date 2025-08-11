@@ -9,7 +9,9 @@ import (
 func ParseDateTimeKST(dateString string) (time.Time, error) {
 	location, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		return time.Time{}, fmt.Errorf("KST 시간대 로드 오류: %v", err)
+		// Docker 환경에서 시간대 정보가 없는 경우 UTC+9 오프셋 사용
+		Debug("Asia/Seoul 시간대 로드 실패, UTC+9 오프셋 사용: %v", err)
+		location = time.FixedZone("KST", 9*60*60) // UTC+9
 	}
 
 	// 다양한 날짜 형식 지원
@@ -34,8 +36,8 @@ func ParseDateTimeKST(dateString string) (time.Time, error) {
 func FormatDateTimeKST(t time.Time) string {
 	location, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		// 오류 시 UTC 사용
-		return t.UTC().Format("2006-01-02 15:04:05")
+		// Docker 환경에서 시간대 정보가 없는 경우 UTC+9 오프셋 사용
+		location = time.FixedZone("KST", 9*60*60) // UTC+9
 	}
 
 	return t.In(location).Format("2006-01-02 15:04:05")
@@ -45,8 +47,8 @@ func FormatDateTimeKST(t time.Time) string {
 func GetCurrentKST() time.Time {
 	location, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		// 오류 시 UTC 사용
-		return time.Now().UTC()
+		// Docker 환경에서 시간대 정보가 없는 경우 UTC+9 오프셋 사용
+		location = time.FixedZone("KST", 9*60*60) // UTC+9
 	}
 
 	return time.Now().In(location)
@@ -56,8 +58,8 @@ func GetCurrentKST() time.Time {
 func FormatDateKST(t time.Time) string {
 	location, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		// 오류 시 UTC 사용
-		return t.UTC().Format("2006-01-02")
+		// Docker 환경에서 시간대 정보가 없는 경우 UTC+9 오프셋 사용
+		location = time.FixedZone("KST", 9*60*60) // UTC+9
 	}
 
 	return t.In(location).Format("2006-01-02")
@@ -67,7 +69,8 @@ func FormatDateKST(t time.Time) string {
 func StartOfDayKST(t time.Time) time.Time {
 	location, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		location = time.UTC
+		// Docker 환경에서 시간대 정보가 없는 경우 UTC+9 오프셋 사용
+		location = time.FixedZone("KST", 9*60*60) // UTC+9
 	}
 
 	year, month, day := t.In(location).Date()
@@ -78,7 +81,8 @@ func StartOfDayKST(t time.Time) time.Time {
 func EndOfDayKST(t time.Time) time.Time {
 	location, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		location = time.UTC
+		// Docker 환경에서 시간대 정보가 없는 경우 UTC+9 오프셋 사용
+		location = time.FixedZone("KST", 9*60*60) // UTC+9
 	}
 
 	year, month, day := t.In(location).Date()
@@ -89,7 +93,8 @@ func EndOfDayKST(t time.Time) time.Time {
 func StartOfMonthKST(t time.Time) time.Time {
 	location, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		location = time.UTC
+		// Docker 환경에서 시간대 정보가 없는 경우 UTC+9 오프셋 사용
+		location = time.FixedZone("KST", 9*60*60) // UTC+9
 	}
 
 	year, month, _ := t.In(location).Date()
@@ -100,7 +105,8 @@ func StartOfMonthKST(t time.Time) time.Time {
 func EndOfMonthKST(t time.Time) time.Time {
 	location, err := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		location = time.UTC
+		// Docker 환경에서 시간대 정보가 없는 경우 UTC+9 오프셋 사용
+		location = time.FixedZone("KST", 9*60*60) // UTC+9
 	}
 
 	year, month, _ := t.In(location).Date()
