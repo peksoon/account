@@ -233,10 +233,6 @@ export default {
         const initializeLocalAccount = (accountData) => {
             const defaultDate = new Date().toISOString().slice(0, 10);
 
-            console.log('initializeLocalAccount - 입력:', accountData);
-            console.log('initializeLocalAccount - props.selectedDate:', props.selectedDate);
-            console.log('initializeLocalAccount - accountData.date:', accountData?.date);
-
             // 우선순위: props.selectedDate > accountData.date > defaultDate
             let dateToUse = defaultDate;
             if (props.selectedDate && props.selectedDate !== '') {
@@ -244,8 +240,6 @@ export default {
             } else if (accountData && accountData.date && accountData.date !== '') {
                 dateToUse = accountData.date;
             }
-
-            console.log('initializeLocalAccount - 사용할 날짜:', dateToUse);
 
             const result = {
                 type: 'out',
@@ -259,8 +253,6 @@ export default {
                 ...accountData, // props 값으로 덮어쓰기
                 date: dateToUse, // date는 마지막에 확실히 설정
             };
-
-            console.log('initializeLocalAccount - 최종 결과:', result);
 
             return result;
         };
@@ -343,16 +335,9 @@ export default {
 
         // props 변경 감지
         watch(() => props.newAccount, (newVal) => {
-            console.log('AddPopup props.newAccount 변경됨:', newVal);
             const initialized = initializeLocalAccount(newVal);
             localAccount.value = { ...initialized };
-            console.log('AddPopup localAccount 초기화 후:', localAccount.value);
         }, { deep: true, immediate: true });
-
-        // 날짜가 변경될 때 추가 로그
-        watch(() => localAccount.value.date, (newDate) => {
-            console.log('AddPopup localAccount.date 변경됨:', newDate);
-        });
 
         // 타입 변경 시 관련 필드 초기화
         watch(() => localAccount.value.type, (newType) => {

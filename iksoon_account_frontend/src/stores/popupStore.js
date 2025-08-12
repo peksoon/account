@@ -21,9 +21,6 @@ export const usePopupStore = defineStore('popup', {
   actions: {
     openAddPopup(selectedDate = null) {
       const date = selectedDate || new Date().toISOString().slice(0, 10);
-      
-      console.log('popupStore openAddPopup - selectedDate:', selectedDate);
-      console.log('popupStore openAddPopup - 최종 date:', date);
 
       // 새로운 계정 데이터 설정 (AddPopup에서 기대하는 필드명으로)
       this.newAccount = {
@@ -37,8 +34,6 @@ export const usePopupStore = defineStore('popup', {
         deposit_path: '',
         date: date,
       };
-      
-      console.log('popupStore newAccount 설정 완료:', this.newAccount);
       
       // 팝업 표시
       this.showAddPopup = true;

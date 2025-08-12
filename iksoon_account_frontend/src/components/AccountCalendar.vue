@@ -376,7 +376,6 @@ export default {
       },
       // 모바일 최적화
       aspectRatio: window.innerWidth < 768 ? 0.8 : 1.35, // 모바일에서 더 세로로 압축
-      eventTextColor: '#fff',
       eventDisplay: 'block',
       dayMaxEventRows: window.innerWidth < 768 ? 2 : 3,
       dayHeaderFormat: window.innerWidth < 768 ? { weekday: 'narrow' } : { weekday: 'short' },
@@ -636,10 +635,8 @@ export default {
     // 선택된 날짜로 팝업 열기
     const openAddPopupForSelectedDate = () => {
       if (selectedDate.value) {
-        console.log('선택된 날짜:', selectedDate.value);
         popupStore.openAddPopup(selectedDate.value);
       } else {
-        console.log('선택된 날짜가 없습니다.');
         popupStore.openAddPopup();
       }
     };
@@ -858,6 +855,56 @@ export default {
   background: transparent;
 }
 
+/* FullCalendar 기본 스타일 재정의 */
+.modern-calendar :deep(.fc-event) {
+  color: inherit !important;
+}
+
+.modern-calendar :deep(.fc-event-title) {
+  color: inherit !important;
+}
+
+.modern-calendar :deep(.fc-event-title-container) {
+  color: inherit !important;
+}
+
+.modern-calendar :deep(.fc-daygrid-event) {
+  color: inherit !important;
+}
+
+.modern-calendar :deep(.fc-daygrid-event .fc-event-title) {
+  color: inherit !important;
+}
+
+/* 모든 FullCalendar 텍스트 요소에 색상 강제 적용 */
+.modern-calendar :deep(.fc-daygrid-event),
+.modern-calendar :deep(.fc-daygrid-event *),
+.modern-calendar :deep(.fc-event),
+.modern-calendar :deep(.fc-event *) {
+  color: inherit !important;
+}
+
+/* 클래스별 직접 색상 지정 */
+.modern-calendar :deep(.fc-event.income-total),
+.modern-calendar :deep(.fc-event.income-total *) {
+  color: #059669 !important;
+}
+
+.modern-calendar :deep(.fc-event.expense-total),
+.modern-calendar :deep(.fc-event.expense-total *) {
+  color: #dc2626 !important;
+}
+
+.modern-calendar :deep(.fc-event.income-event),
+.modern-calendar :deep(.fc-event.income-event *) {
+  color: #059669 !important;
+}
+
+.modern-calendar :deep(.fc-event.expense-event),
+.modern-calendar :deep(.fc-event.expense-event *) {
+  color: #dc2626 !important;
+}
+
 .modern-calendar :deep(.fc-scrollgrid) {
   border: none;
 }
@@ -874,37 +921,37 @@ export default {
   padding: 12px 8px;
 }
 
+/* 텍스트 생략 방지 및 가독성 개선 */
+.modern-calendar :deep(.fc-event-title) {
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  line-height: 1.2 !important;
+}
+
 /* 모바일 최적화 */
 @media (max-width: 768px) {
   .modern-calendar :deep(.fc-theme-standard th) {
     padding: 6px 2px;
-    font-size: 0.7rem;
+    font-size: clamp(0.6rem, 2vw, 0.8rem);
     font-weight: 600;
   }
 
   .modern-calendar :deep(.fc-daygrid-day-number) {
-    font-size: 0.75rem;
+    font-size: clamp(0.65rem, 2.2vw, 0.85rem);
     padding: 2px;
     line-height: 1;
   }
 
   .modern-calendar :deep(.fc-daygrid-event) {
-    font-size: 0.65rem;
-    padding: 1px 3px;
-    margin: 0.5px 1px;
-    line-height: 1.2;
-  }
-
-  .modern-calendar :deep(.fc-event-title) {
-    font-size: 0.65rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: 1px 2px;
+    margin: 0.3px 0.5px;
     line-height: 1.2;
   }
 
   .modern-calendar :deep(.fc-daygrid-day-frame) {
-    min-height: 2.5rem;
+    min-height: 2.8rem;
   }
 
   .modern-calendar :deep(.fc-daygrid-day-top) {
@@ -912,7 +959,7 @@ export default {
   }
 
   .modern-calendar :deep(.fc-scrollgrid-sync-table) {
-    font-size: 0.7rem;
+    font-size: clamp(0.6rem, 1.8vw, 0.8rem);
   }
 
   .modern-calendar :deep(.fc-daygrid-day-events) {
@@ -961,29 +1008,41 @@ export default {
 }
 
 .modern-calendar :deep(.fc-event) {
-  border: none;
-  border-radius: 6px;
-  padding: 2px 6px;
-  margin: 1px 2px;
-  font-size: 11px;
+  border: none !important;
+  border-radius: 4px;
+  padding: 1px 3px;
+  margin: 1px 1px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  background: transparent !important;
+  box-shadow: none !important;
+  /* 동적 폰트 크기 */
+  font-size: clamp(0.6rem, 1.5vw, 0.8rem);
 }
 
 .modern-calendar :deep(.fc-event:hover) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  opacity: 0.8;
 }
 
 .modern-calendar :deep(.expense-event) {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
+  background: transparent !important;
+  color: #dc2626 !important;
+  /* 진한 빨강 */
+}
+
+.modern-calendar :deep(.expense-event .fc-event-title) {
+  color: #dc2626 !important;
 }
 
 .modern-calendar :deep(.income-event) {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: white;
+  background: transparent !important;
+  color: #059669 !important;
+  /* 진한 초록 */
+}
+
+.modern-calendar :deep(.income-event .fc-event-title) {
+  color: #059669 !important;
 }
 
 .modern-calendar :deep(.fc-more-link) {
@@ -1002,41 +1061,73 @@ export default {
 
 /* 수입/지출 총합 이벤트 스타일 */
 .modern-calendar :deep(.income-total) {
-  background: #10b981 !important;
-  border-color: #10b981 !important;
-  color: white !important;
-  font-weight: 600 !important;
-  border-radius: 3px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #059669 !important;
+  /* 진한 초록 */
+  font-weight: 500 !important;
   margin: 0.5px 0 !important;
-  padding: 1px 3px !important;
-  font-size: 0.65rem !important;
+  padding: 1px 2px !important;
   line-height: 1.2 !important;
+  /* 동적 폰트 크기 */
+  font-size: clamp(0.6rem, 1.5vw, 0.8rem) !important;
+}
+
+.modern-calendar :deep(.income-total .fc-event-title) {
+  color: #059669 !important;
 }
 
 .modern-calendar :deep(.expense-total) {
-  background: #ef4444 !important;
-  border-color: #ef4444 !important;
-  color: white !important;
-  font-weight: 600 !important;
-  border-radius: 3px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #dc2626 !important;
+  /* 진한 빨강 */
+  font-weight: 500 !important;
   margin: 0.5px 0 !important;
-  padding: 1px 3px !important;
-  font-size: 0.65rem !important;
+  padding: 1px 2px !important;
   line-height: 1.2 !important;
+  /* 동적 폰트 크기 */
+  font-size: clamp(0.6rem, 1.5vw, 0.8rem) !important;
 }
 
-/* 모바일에서 이벤트 스타일 더 컴팩트하게 */
-@media (max-width: 768px) {
-  .modern-calendar :deep(.income-total) {
-    font-size: 0.6rem !important;
-    padding: 0.5px 2px !important;
+.modern-calendar :deep(.expense-total .fc-event-title) {
+  color: #dc2626 !important;
+}
+
+/* 화면 크기별 세밀한 조정 */
+@media (max-width: 480px) {
+
+  .modern-calendar :deep(.income-total),
+  .modern-calendar :deep(.expense-total) {
+    font-size: clamp(0.5rem, 2vw, 0.65rem) !important;
+    padding: 0.5px 1px !important;
     margin: 0.2px 0 !important;
   }
+}
 
+@media (min-width: 481px) and (max-width: 768px) {
+
+  .modern-calendar :deep(.income-total),
   .modern-calendar :deep(.expense-total) {
-    font-size: 0.6rem !important;
-    padding: 0.5px 2px !important;
-    margin: 0.2px 0 !important;
+    font-size: clamp(0.6rem, 1.8vw, 0.75rem) !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .modern-calendar :deep(.income-total),
+  .modern-calendar :deep(.expense-total) {
+    font-size: clamp(0.7rem, 1.2vw, 0.85rem) !important;
+  }
+}
+
+@media (min-width: 1025px) {
+
+  .modern-calendar :deep(.income-total),
+  .modern-calendar :deep(.expense-total) {
+    font-size: clamp(0.75rem, 1vw, 0.9rem) !important;
   }
 }
 
