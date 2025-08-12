@@ -19,6 +19,18 @@ func main() {
 		log.Fatalf("설정 오류: %v", err)
 	}
 
+	// 로그 레벨을 config에서 읽어온 값으로 다시 설정
+	switch cfg.LogLevel {
+	case "DEBUG":
+		utils.SetLogLevel(utils.DEBUG)
+	case "INFO":
+		utils.SetLogLevel(utils.INFO)
+	case "WARNING", "WARN":
+		utils.SetLogLevel(utils.WARNING)
+	case "ERROR":
+		utils.SetLogLevel(utils.ERROR)
+	}
+
 	// 디버그용 설정 출력 (DEBUG 레벨일 때만)
 	if cfg.LogLevel == "DEBUG" {
 		cfg.PrintConfig()

@@ -4,6 +4,7 @@ export const useCalendarStore = defineStore('calendar', {
   state: () => ({
     currentYear: new Date().getFullYear(),
     currentMonth: String(new Date().getMonth() + 1).padStart(2, '0'),
+    selectedDate: '', // 선택된 날짜 (YYYY-MM-DD 형식)
   }),
   actions: {
     // FullCalendar와 호환성을 위한 더미 메서드들
@@ -18,6 +19,14 @@ export const useCalendarStore = defineStore('calendar', {
     setCurrentDate(year, month) {
       this.currentYear = year;
       this.currentMonth = String(month).padStart(2, '0');
+    },
+    // 선택된 날짜 설정
+    setSelectedDate(date) {
+      this.selectedDate = date;
+    },
+    // 선택된 날짜 초기화
+    clearSelectedDate() {
+      this.selectedDate = '';
     },
   },
 });

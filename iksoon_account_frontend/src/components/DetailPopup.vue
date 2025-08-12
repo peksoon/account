@@ -42,7 +42,7 @@
             </div>
 
             <!-- 카테고리 -->
-            <el-form-item label="카테고리" prop="category" class="mb-6">
+            <el-form-item label="카테고리" prop="category_name" class="mb-6">
               <el-select v-model="localEventDetail.category_name" placeholder="카테고리를 선택하세요" size="large" class="w-full"
                 filterable allow-create>
                 <el-option v-for="category in availableCategories" :key="category" :label="category"
@@ -318,7 +318,7 @@ export default {
         { required: true, message: '금액을 입력해주세요', trigger: 'blur' },
         { type: 'number', min: 1, message: '금액은 1원 이상이어야 합니다', trigger: 'blur' }
       ],
-      category: [
+      category_name: [
         { required: true, message: '카테고리를 선택해주세요', trigger: 'change' }
       ],
       date: [
@@ -353,6 +353,18 @@ export default {
     // props 변경 감지
     watch(() => props.eventDetail, (newVal) => {
       localEventDetail.value = { ...newVal };
+      
+      // 카테고리 이름이 없고 ID가 있는 경우 이름 설정
+      if (!localEventDetail.value.category_name) {
+        if (localEventDetail.value.category_id) {
+          const categoryName = getCategoryName(localEventDetail.value.category_id);
+          if (categoryName) {
+            localEventDetail.value.category_name = categoryName;
+          }
+        } else if (localEventDetail.value.category) {
+          localEventDetail.value.category_name = localEventDetail.value.category;
+        }
+      }
     }, { deep: true });
 
     // 계정 업데이트
@@ -367,6 +379,11 @@ export default {
 
         // 데이터 정리
         const accountData = { ...localEventDetail.value };
+        
+        // category_name이 있으면 category 필드에도 설정
+        if (accountData.category_name) {
+          accountData.category = accountData.category_name;
+        }
 
         emit('update', accountData);
 
@@ -412,6 +429,18 @@ export default {
       isEditMode.value = true;
       // 편집 모드 시작 시 현재 데이터를 다시 로드하여 최신 상태 반영
       localEventDetail.value = { ...props.eventDetail };
+      
+      // 카테고리 이름 설정 (ID가 있는 경우 이름으로 변환)
+      if (localEventDetail.value.category_id && !localEventDetail.value.category_name) {
+        const categoryName = getCategoryName(localEventDetail.value.category_id);
+        if (categoryName) {
+          localEventDetail.value.category_name = categoryName;
+        }
+      }
+      // category 필드가 있고 category_name이 없는 경우
+      else if (localEventDetail.value.category && !localEventDetail.value.category_name) {
+        localEventDetail.value.category_name = localEventDetail.value.category;
+      }
     };
 
     // 편집 취소
@@ -460,12 +489,24 @@ export default {
       return paymentMethod ? paymentMethod.name : '';
     };
 
-    // 컴포넌트 마운트 시 결제수단 데이터 로드
+    // 컴포넌트 마운트 시 데이터 로드
     onMounted(async () => {
       try {
         await paymentMethodStore.fetchPaymentMethods();
+        
+        // 초기 카테고리 이름 설정
+        if (!localEventDetail.value.category_name) {
+          if (localEventDetail.value.category_id) {
+            const categoryName = getCategoryName(localEventDetail.value.category_id);
+            if (categoryName) {
+              localEventDetail.value.category_name = categoryName;
+            }
+          } else if (localEventDetail.value.category) {
+            localEventDetail.value.category_name = localEventDetail.value.category;
+          }
+        }
       } catch (error) {
-        console.error('결제수단 데이터 로드 오류:', error);
+        console.error('데이터 로드 오류:', error);
       }
     });
 

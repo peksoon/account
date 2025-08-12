@@ -13,7 +13,8 @@
               </div>
               <h1 :class="isMobile ? 'text-xl' : 'text-3xl'" class="font-bold text-gradient">상윤 가족 가계부</h1>
             </div>
-            <p :class="isMobile ? 'text-base' : 'text-lg'" class="text-gray-600 font-medium">{{ currentYear }}년 {{ currentMonth }}월</p>
+            <p :class="isMobile ? 'text-base' : 'text-lg'" class="text-gray-600 font-medium">{{ currentYear }}년 {{
+              currentMonth }}월</p>
           </div>
 
           <!-- 컨트롤 버튼들 -->
@@ -22,13 +23,12 @@
             <template v-if="viewMode === 'calendar'">
               <!-- 첫 번째 줄: 네비게이션 버튼들 (모바일에서 가로 배치) -->
               <div class="flex flex-wrap gap-2 justify-center md:justify-end">
-                <el-button @click="goToToday" type="primary" :icon="Calendar" 
-                  :size="isMobile ? 'small' : 'large'"
+                <el-button @click="goToToday" type="primary" :icon="Calendar" :size="isMobile ? 'small' : 'large'"
                   :class="isMobile ? 'text-xs px-3 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
                   {{ isMobile ? '오늘' : '오늘' }}
                 </el-button>
                 <el-button-group :class="isMobile ? 'flex-shrink-0' : ''">
-                  <el-button @click="goToPrevMonth" :size="isMobile ? 'small' : 'large'" 
+                  <el-button @click="goToPrevMonth" :size="isMobile ? 'small' : 'large'"
                     :class="isMobile ? 'text-xs px-2 py-1 min-w-0' : ''">
                     {{ isMobile ? '←' : '← 이전' }}
                   </el-button>
@@ -69,21 +69,24 @@
             <div class="bg-gradient-to-r from-green-400 to-green-500 text-white px-3 py-2 rounded-md flex-1 min-w-0">
               <div class="text-center">
                 <p class="text-green-100 text-xs leading-tight truncate">총 수입</p>
-                <p class="text-xs font-bold leading-tight mt-0.5 truncate">{{ formatMoney(monthlyStats.totalIncome) }}원</p>
+                <p class="text-xs font-bold leading-tight mt-0.5 truncate">{{ formatMoney(monthlyStats.totalIncome) }}원
+                </p>
               </div>
             </div>
 
             <div class="bg-gradient-to-r from-red-400 to-red-500 text-white px-3 py-2 rounded-md flex-1 min-w-0">
               <div class="text-center">
                 <p class="text-red-100 text-xs leading-tight truncate">총 지출</p>
-                <p class="text-xs font-bold leading-tight mt-0.5 truncate">{{ formatMoney(monthlyStats.totalExpense) }}원</p>
+                <p class="text-xs font-bold leading-tight mt-0.5 truncate">{{ formatMoney(monthlyStats.totalExpense) }}원
+                </p>
               </div>
             </div>
 
             <div class="bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 py-2 rounded-md flex-1 min-w-0">
               <div class="text-center">
                 <p class="text-blue-100 text-xs leading-tight truncate">잔액</p>
-                <p class="text-xs font-bold leading-tight mt-0.5 truncate" :class="monthlyStats.balance >= 0 ? 'text-white' : 'text-yellow-200'">
+                <p class="text-xs font-bold leading-tight mt-0.5 truncate"
+                  :class="monthlyStats.balance >= 0 ? 'text-white' : 'text-yellow-200'">
                   {{ formatMoney(monthlyStats.balance) }}원
                 </p>
               </div>
@@ -135,13 +138,20 @@
         </div>
 
         <!-- 선택된 날짜 상세 정보 -->
-        <div v-if="selectedDateData.length" class="card animate-slide-up" :class="isMobile ? 'p-4' : 'p-6'">
-          <div class="flex items-center mb-4">
-            <Calendar class="w-6 h-6 text-primary-500 mr-2" />
-            <h2 class="text-xl font-bold text-gray-800">{{ selectedDate }} 가계부</h2>
+        <div v-if="selectedDateData.length || selectedDate" class="card animate-slide-up"
+          :class="isMobile ? 'p-4' : 'p-6'">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+              <Calendar class="w-6 h-6 text-primary-500 mr-2" />
+              <h2 class="text-xl font-bold text-gray-800">{{ selectedDate }} 가계부</h2>
+            </div>
+            <el-button @click="openAddPopupForSelectedDate" type="success" :size="isMobile ? 'small' : 'default'"
+              class="ml-4">
+              {{ isMobile ? '+' : '+ 추가' }}
+            </el-button>
           </div>
 
-          <div class="grid gap-3">
+          <div v-if="selectedDateData.length" class="grid gap-3">
             <div v-for="(data, index) in selectedDateData" :key="index" @click="showDetailPopup(data)"
               class="p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-md transition-all duration-200 cursor-pointer">
               <div class="flex items-center justify-between">
@@ -152,7 +162,7 @@
                   </div>
                   <div>
                     <p class="font-semibold text-gray-800">{{ getCategoryName(data.category_id) || data.category || '-'
-                      }}
+                    }}
                     </p>
                     <p v-if="data.keyword_name || data.keyword" class="text-sm text-gray-600">🏷️ {{ data.keyword_name
                       ||
@@ -167,6 +177,15 @@
                   <p class="text-xs text-gray-500">{{ data.type === 'out' ? '지출' : '수입' }}</p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- 선택된 날짜에 데이터가 없을 때 -->
+          <div v-else class="text-center py-8">
+            <div class="text-gray-500 mb-4">
+              <Calendar class="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p class="text-lg">선택한 날짜에 가계부 데이터가 없습니다.</p>
+              <p class="text-sm">위의 +추가 버튼을 눌러 새로운 가계부를 작성해보세요.</p>
             </div>
           </div>
         </div>
@@ -194,11 +213,11 @@
     </div>
 
     <!-- 팝업들 -->
-    <AddPopup v-if="showAddPopup" :newAccount="newAccount" @close="closeAddPopup" @save="saveAccount"
-      @open-category-manager="openCategoryManager" @open-keyword-manager="openKeywordManager"
-      @open-payment-method-manager="openPaymentMethodManager" @open-deposit-path-manager="openDepositPathManager"
-      @open-user-manager="openUserManager" @budget-alert="handleBudgetAlert"
-      @budget-save-success="handleBudgetSaveSuccess" />
+    <AddPopup v-if="showAddPopup" :key="selectedDate" :newAccount="newAccount" :selectedDate="selectedDate"
+      @close="closeAddPopup" @save="saveAccount" @open-category-manager="openCategoryManager"
+      @open-keyword-manager="openKeywordManager" @open-payment-method-manager="openPaymentMethodManager"
+      @open-deposit-path-manager="openDepositPathManager" @open-user-manager="openUserManager"
+      @budget-alert="handleBudgetAlert" @budget-save-success="handleBudgetSaveSuccess" />
 
     <DetailPopup v-if="showCustomPopup" :eventDetail="eventDetail" :isEditMode="isEditMode" @close="closePopup"
       @edit="openEditMode" @update="updateAccount" @delete="deleteAccount" @cancel-edit="cancelEdit" />
@@ -423,7 +442,7 @@ export default {
             title: `+${formatMoney(totals.income)}`,
             date: date,
             className: 'income-total',
-            display: 'list-item',
+            display: 'block',
             extendedProps: { type: 'income-total', amount: totals.income, items: totals.items.filter(i => i.type === 'in') }
           });
         }
@@ -435,7 +454,7 @@ export default {
             title: `-${formatMoney(totals.expense)}`,
             date: date,
             className: 'expense-total',
-            display: 'list-item',
+            display: 'block',
             extendedProps: { type: 'expense-total', amount: totals.expense, items: totals.items.filter(i => i.type === 'out') }
           });
         }
@@ -457,8 +476,18 @@ export default {
       selectedDate.value = dateStr;
       selectedDateData.value = accountStore.fetchDataForDate(dateStr);
 
-      // 날짜 클릭 시 AddPopup 열기 (해당 날짜로 설정)
-      popupStore.openAddPopup(dateStr);
+      // 이전 선택된 날짜 클래스 제거
+      if (calendar.value) {
+        const calendarApi = calendar.value.getApi();
+        const allDays = calendarApi.el.querySelectorAll('.fc-day-selected');
+        allDays.forEach(day => day.classList.remove('fc-day-selected'));
+      }
+
+      // 현재 선택된 날짜에 클래스 추가
+      const dayElement = info.dayEl;
+      if (dayElement) {
+        dayElement.classList.add('fc-day-selected');
+      }
     }
 
     // 이벤트 클릭 핸들러
@@ -524,6 +553,13 @@ export default {
     const clearSelection = () => {
       selectedDate.value = '';
       selectedDateData.value = [];
+
+      // 선택된 날짜 클래스 제거
+      if (calendar.value) {
+        const calendarApi = calendar.value.getApi();
+        const allDays = calendarApi.el.querySelectorAll('.fc-day-selected');
+        allDays.forEach(day => day.classList.remove('fc-day-selected'));
+      }
     };
 
     // 계정 저장 (수입만 처리, 지출은 budget-save-success에서 처리)
@@ -596,6 +632,17 @@ export default {
     const openEditMode = () => popupStore.openEditMode();
     const cancelEdit = () => popupStore.closePopup();
     const showDetailPopup = (data) => popupStore.showDetailPopup(data);
+
+    // 선택된 날짜로 팝업 열기
+    const openAddPopupForSelectedDate = () => {
+      if (selectedDate.value) {
+        console.log('선택된 날짜:', selectedDate.value);
+        popupStore.openAddPopup(selectedDate.value);
+      } else {
+        console.log('선택된 날짜가 없습니다.');
+        popupStore.openAddPopup();
+      }
+    };
 
     // 관리 모달 관련 메서드
     const openCategoryManager = () => {
@@ -755,6 +802,7 @@ export default {
       openEditMode,
       cancelEdit,
       showDetailPopup,
+      openAddPopupForSelectedDate,
       formatMoney,
       getCategoryName,
 
@@ -886,8 +934,19 @@ export default {
 }
 
 .modern-calendar :deep(.fc-day-today) {
-  background: #eff6ff !important;
-  border-color: #3b82f6 !important;
+  background: #f0f9ff !important;
+  border: 2px solid #93c5fd !important;
+}
+
+.modern-calendar :deep(.fc-day-selected) {
+  background: #f0fdf4 !important;
+  border: 2px solid #86efac !important;
+}
+
+/* 선택된 날짜가 오늘인 경우 초록색 테두리를 우선 표시 */
+.modern-calendar :deep(.fc-day-today.fc-day-selected) {
+  background: #f0fdf4 !important;
+  border: 2px solid #86efac !important;
 }
 
 .modern-calendar :deep(.fc-daygrid-day-number) {
@@ -1012,7 +1071,7 @@ export default {
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
-  
+
   .card {
     border-radius: 0.5rem;
   }
@@ -1024,17 +1083,17 @@ export default {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
-  
+
   /* 통계 카드 간격 더 줄이기 */
   .flex.gap-2 {
     gap: 0.25rem;
   }
-  
+
   /* 카드 패딩 더 줄이기 */
   .px-3.py-2 {
     padding: 0.375rem 0.5rem;
   }
-  
+
   /* 폰트 크기 더 작게 */
   .text-xs {
     font-size: 0.65rem;

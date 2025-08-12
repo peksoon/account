@@ -1,6 +1,6 @@
 <template>
     <div class="modal-backdrop" @click.self="closeAddPopup">
-        <div class="modal-content">
+        <div class="modal-content" :class="{ 'mobile-modal': isMobile }">
             <!-- 헤더 -->
             <div class="flex items-center justify-between p-6 border-b border-gray-200">
                 <div class="flex items-center">
@@ -211,6 +211,10 @@ export default {
         newAccount: {
             type: Object,
             required: true
+        },
+        selectedDate: {
+            type: String,
+            default: null
         }
     },
     emits: ['save', 'close', 'update:newAccount', 'open-category-manager', 'open-payment-method-manager', 'open-deposit-path-manager', 'open-keyword-manager', 'open-user-manager', 'budget-alert', 'budget-save-success'],
@@ -225,18 +229,49 @@ export default {
         const formRef = ref(null);
         const saving = ref(false);
 
+        // 로컬 계정 데이터 초기화 함수
+        const initializeLocalAccount = (accountData) => {
+            const defaultDate = new Date().toISOString().slice(0, 10);
+
+            console.log('initializeLocalAccount - 입력:', accountData);
+            console.log('initializeLocalAccount - props.selectedDate:', props.selectedDate);
+            console.log('initializeLocalAccount - accountData.date:', accountData?.date);
+
+            // 우선순위: props.selectedDate > accountData.date > defaultDate
+            let dateToUse = defaultDate;
+            if (props.selectedDate && props.selectedDate !== '') {
+                dateToUse = props.selectedDate;
+            } else if (accountData && accountData.date && accountData.date !== '') {
+                dateToUse = accountData.date;
+            }
+
+            console.log('initializeLocalAccount - 사용할 날짜:', dateToUse);
+
+            const result = {
+                type: 'out',
+                user: '',
+                money: '',
+                category_id: null,
+                keyword_name: '',
+                payment_method_id: null,
+                memo: '',
+                deposit_path: '',
+                ...accountData, // props 값으로 덮어쓰기
+                date: dateToUse, // date는 마지막에 확실히 설정
+            };
+
+            console.log('initializeLocalAccount - 최종 결과:', result);
+
+            return result;
+        };
+
         // 로컬 계정 데이터
-        const localAccount = ref({
-            type: 'out',
-            user: '',
-            money: '',
-            category_id: null,
-            keyword_name: '',
-            payment_method_id: null,
-            memo: '',
-            deposit_path: '',
-            date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD 형식으로 현재 날짜
-            ...props.newAccount
+        const localAccount = ref(initializeLocalAccount(props.newAccount));
+
+        // 모바일 체크
+        const isMobile = computed(() => {
+            if (typeof window === 'undefined') return false;
+            return window.innerWidth < 768;
         });
 
         // 폼 검증 규칙
@@ -308,19 +343,16 @@ export default {
 
         // props 변경 감지
         watch(() => props.newAccount, (newVal) => {
-            localAccount.value = {
-                type: 'out',
-                user: '',
-                money: '',
-                category_id: null,
-                keyword_name: '',
-                payment_method_id: null,
-                memo: '',
-                account_number: '',
-                date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD 형식으로 현재 날짜
-                ...newVal
-            };
-        }, { deep: true });
+            console.log('AddPopup props.newAccount 변경됨:', newVal);
+            const initialized = initializeLocalAccount(newVal);
+            localAccount.value = { ...initialized };
+            console.log('AddPopup localAccount 초기화 후:', localAccount.value);
+        }, { deep: true, immediate: true });
+
+        // 날짜가 변경될 때 추가 로그
+        watch(() => localAccount.value.date, (newDate) => {
+            console.log('AddPopup localAccount.date 변경됨:', newDate);
+        });
 
         // 타입 변경 시 관련 필드 초기화
         watch(() => localAccount.value.type, (newType) => {
@@ -446,11 +478,6 @@ export default {
         // 컴포넌트 마운트 시 초기 데이터 로드
         onMounted(() => {
             loadInitialData();
-
-            // 날짜가 설정되지 않은 경우 현재 날짜로 설정
-            if (!localAccount.value.date) {
-                localAccount.value.date = new Date().toISOString().slice(0, 10);
-            }
         });
 
         return {
@@ -462,6 +489,7 @@ export default {
             depositPathOptions,
             userOptions,
             isFormValid,
+            isMobile,
 
             saveAccount,
             closeAddPopup,
@@ -566,8 +594,41 @@ export default {
 }
 
 /* 모바일 최적화 */
+.mobile-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+.mobile-modal .p-6 {
+    @apply p-4;
+}
+
+/* 모바일에서 폼 내용 영역 스크롤 처리 */
+.mobile-modal .p-6:nth-child(2) {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 모바일에서 하단 버튼 영역 고정 */
+.mobile-modal .border-t {
+    flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
-    .modal-content {
+    .modal-content:not(.mobile-modal) {
         @apply max-w-none w-full mx-4 max-h-[90vh] overflow-y-auto;
     }
 
@@ -620,5 +681,27 @@ export default {
 .lucide-dollar-sign {
     color: #ffffff !important;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+/* 모바일에서 Element Plus 드롭다운 z-index 수정 */
+@media (max-width: 768px) {
+    :deep(.el-select-dropdown) {
+        z-index: 9999 !important;
+    }
+
+    :deep(.el-popper) {
+        z-index: 9999 !important;
+    }
+
+    :deep(.el-date-picker__popper) {
+        z-index: 9999 !important;
+    }
+
+    /* 모바일에서 select 옵션이 잘 보이도록 */
+    :deep(.el-select-dropdown__item) {
+        padding: 12px 20px !important;
+        font-size: 16px !important;
+        line-height: 1.5 !important;
+    }
 }
 </style>
