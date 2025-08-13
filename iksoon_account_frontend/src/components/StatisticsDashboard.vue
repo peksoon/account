@@ -201,36 +201,69 @@
             </div>
         </div>
 
-        <!-- 키워드 상세 다이얼로그 -->
-        <el-dialog v-model="keywordDialogVisible" :title="`${selectedCategory?.category_name} 키워드 상세`" width="600px"
-            destroy-on-close>
-            <div v-if="keywordStatistics">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div class="keyword-chart">
-                        <Doughnut v-if="keywordChartData.datasets[0].data.length > 0" :data="keywordChartData"
-                            :options="keywordChartOptions" />
-                    </div>
-                    <div class="keyword-list">
-                        <div v-for="keyword in keywordStatistics.keywords" :key="keyword.keyword_id"
-                            class="keyword-item">
-                            <div class="flex items-center justify-between">
-                                <span class="font-medium">{{ keyword.keyword_name }}</span>
-                                <span class="font-bold">{{ formatMoney(keyword.total_amount) }}원</span>
+        <!-- 키워드 상세 영역 (페이지 내 표시) -->
+        <div v-if="selectedCategory" class="mb-8 keyword-detail-section">
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">{{ selectedCategory.category_name }} 키워드 상세</h2>
+                    <el-button @click="closeKeywordDetail" size="small" circle>×</el-button>
+                </div>
+
+                <div v-if="keywordStatistics">
+                    <!-- 모바일: 세로 레이아웃, 데스크톱: 가로 레이아웃 -->
+                    <div :class="isMobile ? 'space-y-6' : 'grid grid-cols-1 md:grid-cols-2 gap-6'" class="mb-6">
+                        <div class="keyword-chart" :class="{ 'mobile-chart': isMobile }">
+                            <Doughnut v-if="keywordChartData.datasets[0].data.length > 0" :data="keywordChartData"
+                                :options="keywordChartOptions" />
+                            <div v-else class="empty-chart">
+                                <PieChart class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <p class="text-gray-500">키워드 데이터가 없습니다</p>
                             </div>
-                            <div class="flex items-center justify-between text-sm text-gray-500">
-                                <span>{{ keyword.count }}건</span>
-                                <span>{{ keyword.percentage.toFixed(1) }}%</span>
+                        </div>
+                        <div class="keyword-list" :class="{ 'mobile-keyword-list': isMobile }">
+                            <!-- 키워드 리스트 헤더 -->
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center space-x-2">
+                                    <!-- 선택된 키워드가 있을 때 전체 보기 버튼 표시 -->
+                                    <el-button v-if="selectedKeywordIndex !== null" size="small" @click="selectedKeywordIndex = null" type="info">
+                                        📋 전체 보기
+                                    </el-button>
+                                    <span v-else class="text-sm font-medium text-gray-700">키워드 목록</span>
+                                </div>
+                                
+                                <!-- 키워드 정렬 버튼 -->
+                                <el-button size="small" @click="toggleKeywordSortOrder" type="default">
+                                    {{ keywordSortOrder === 'desc' ? '💰 높은순' : '💸 낮은순' }}
+                                </el-button>
+                            </div>
+                            
+                            <!-- 키워드 리스트 -->
+                            <div v-for="keyword in filteredKeywords" :key="keyword.keyword_id || keyword.keyword_name"
+                                class="keyword-item">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-medium">{{ keyword.keyword_name || '키워드' }}</span>
+                                    <span class="font-bold">{{ formatMoney(keyword.total_amount || 0) }}원</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm text-gray-500">
+                                    <span>{{ keyword.count || 0 }}건</span>
+                                    <span>{{ (keyword.percentage || 0).toFixed(1) }}%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 선택된 키워드가 있을 때 안내 텍스트 -->
+                            <div v-if="selectedKeywordIndex !== null && filteredKeywords.length > 0" class="mt-3 p-2 bg-blue-50 rounded text-sm text-blue-600">
+                                💡 차트를 클릭하여 다른 키워드를 선택하거나 전체 보기를 클릭하세요.
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div v-if="loadingKeywords" class="text-center py-8">
-                <div class="spinner mx-auto"></div>
-                <p class="text-gray-600 mt-2">키워드 데이터를 불러오는 중...</p>
+                <div v-if="loadingKeywords" class="text-center py-8">
+                    <div class="spinner mx-auto"></div>
+                    <p class="text-gray-600 mt-2">키워드 데이터를 불러오는 중...</p>
+                </div>
             </div>
-        </el-dialog>
+        </div>
     </div>
 </template>
 
@@ -282,14 +315,50 @@ export default {
         const customStartDate = ref(null);
         const customEndDate = ref(null);
         const sortOrder = ref('desc');
-        const keywordDialogVisible = ref(false);
         const selectedCategory = ref(null);
         const loadingKeywords = ref(false);
+        const selectedKeywordIndex = ref(null);
+        const keywordSortOrder = ref('desc');
+
+        // 모바일 감지
+        const isMobile = computed(() => {
+            if (typeof window === 'undefined') return false;
+            return window.innerWidth <= 768;
+        });
 
         const statistics = computed(() => statisticsStore.statistics);
         const keywordStatistics = computed(() => statisticsStore.keywordStatistics);
         const users = computed(() => userStore.users || []);
         const budgetUsages = computed(() => statistics.value?.budget_usages || []);
+
+        // 선택된 키워드 리스트 (차트 클릭 시)
+        const filteredKeywords = computed(() => {
+            if (!keywordStatistics.value?.keywords) return [];
+            
+            let keywords = [...keywordStatistics.value.keywords];
+            
+            // 정렬 적용
+            keywords.sort((a, b) => {
+                const amountA = a.total_amount || 0;
+                const amountB = b.total_amount || 0;
+                return keywordSortOrder.value === 'desc' 
+                    ? amountB - amountA 
+                    : amountA - amountB;
+            });
+            
+            // 선택된 키워드만 필터링
+            if (selectedKeywordIndex.value !== null) {
+                // 정렬된 배열에서 원래 선택된 키워드를 찾아야 함
+                const originalKeyword = keywordStatistics.value.keywords[selectedKeywordIndex.value];
+                const selectedKeyword = keywords.find(k => 
+                    (k.keyword_id && k.keyword_id === originalKeyword?.keyword_id) ||
+                    (k.keyword_name === originalKeyword?.keyword_name)
+                );
+                return selectedKeyword ? [selectedKeyword] : [];
+            }
+            
+            return keywords;
+        });
 
         // 정렬된 카테고리
         const sortedCategories = computed(() => {
@@ -327,9 +396,9 @@ export default {
             };
         });
 
-        // 키워드 차트 데이터
+        // 키워드 차트 데이터 (정렬된 순서로)
         const keywordChartData = computed(() => {
-            if (!keywordStatistics.value?.chart_data) {
+            if (!keywordStatistics.value?.keywords || !Array.isArray(keywordStatistics.value.keywords)) {
                 return {
                     labels: [],
                     datasets: [{
@@ -340,11 +409,26 @@ export default {
                 };
             }
 
+            // 키워드를 정렬
+            const sortedKeywords = [...keywordStatistics.value.keywords].sort((a, b) => {
+                const amountA = a.total_amount || 0;
+                const amountB = b.total_amount || 0;
+                return keywordSortOrder.value === 'desc' 
+                    ? amountB - amountA 
+                    : amountA - amountB;
+            });
+
+            // 색상 배열 생성 (다양한 색상)
+            const colors = [
+                '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
+            ];
+
             return {
-                labels: keywordStatistics.value.chart_data.map(item => item.label),
+                labels: sortedKeywords.map(keyword => keyword?.keyword_name || '키워드'),
                 datasets: [{
-                    data: keywordStatistics.value.chart_data.map(item => item.value),
-                    backgroundColor: keywordStatistics.value.chart_data.map(item => item.color),
+                    data: sortedKeywords.map(keyword => keyword?.total_amount || 0),
+                    backgroundColor: sortedKeywords.map((_, index) => colors[index % colors.length]),
                     borderWidth: 0,
                     hoverOffset: 10
                 }]
@@ -383,32 +467,91 @@ export default {
             }
         };
 
-        const keywordChartOptions = {
+        const keywordChartOptions = computed(() => ({
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        padding: 15,
+                        padding: isMobile.value ? 8 : 15,
                         usePointStyle: true,
                         font: {
-                            size: 11
+                            size: isMobile.value ? 10 : 11
+                        },
+                        maxWidth: isMobile.value ? 120 : undefined,
+                        generateLabels: function(chart) {
+                            const labels = ChartJS.defaults.plugins.legend.labels.generateLabels(chart);
+                            if (isMobile.value && labels && Array.isArray(labels)) {
+                                return labels.map(label => ({
+                                    ...label,
+                                    text: (label.text && typeof label.text === 'string' && label.text.length > 8) 
+                                        ? label.text.substring(0, 8) + '...' 
+                                        : (label.text || '키워드')
+                                }));
+                            }
+                            return labels || [];
                         }
                     }
                 },
                 tooltip: {
+                    titleFont: {
+                        size: isMobile.value ? 12 : 14
+                    },
+                    bodyFont: {
+                        size: isMobile.value ? 11 : 13
+                    },
+                    padding: isMobile.value ? 8 : 12,
                     callbacks: {
                         label: function (context) {
-                            const value = context.parsed;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return `${context.label}: ${formatMoney(value)}원 (${percentage}%)`;
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => (a || 0) + (b || 0), 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                            const label = context.label || '키워드';
+                            return `${label}: ${formatMoney(value)}원 (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            layout: {
+                padding: {
+                    top: isMobile.value ? 10 : 20,
+                    bottom: isMobile.value ? 10 : 20,
+                    left: isMobile.value ? 10 : 20,
+                    right: isMobile.value ? 10 : 20
+                }
+            },
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const clickedIndex = elements[0].index;
+                    
+                    // 정렬된 키워드 배열에서 클릭된 키워드 찾기
+                    const sortedKeywords = [...(keywordStatistics.value?.keywords || [])].sort((a, b) => {
+                        const amountA = a.total_amount || 0;
+                        const amountB = b.total_amount || 0;
+                        return keywordSortOrder.value === 'desc' 
+                            ? amountB - amountA 
+                            : amountA - amountB;
+                    });
+                    
+                    const clickedKeyword = sortedKeywords[clickedIndex];
+                    if (clickedKeyword) {
+                        // 원본 배열에서의 인덱스 찾기
+                        const originalIndex = keywordStatistics.value?.keywords.findIndex(k => 
+                            (k.keyword_id && k.keyword_id === clickedKeyword.keyword_id) ||
+                            (k.keyword_name === clickedKeyword.keyword_name)
+                        );
+                        
+                        // 같은 키워드를 다시 클릭하면 전체 보기로 돌아감
+                        if (selectedKeywordIndex.value === originalIndex) {
+                            selectedKeywordIndex.value = null;
+                        } else {
+                            selectedKeywordIndex.value = originalIndex;
                         }
                     }
                 }
             }
-        };
+        }));
 
         // 금액 포맷팅
         const formatMoney = (amount) => {
@@ -490,10 +633,16 @@ export default {
             sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc';
         };
 
+        // 키워드 정렬 순서 토글
+        const toggleKeywordSortOrder = () => {
+            keywordSortOrder.value = keywordSortOrder.value === 'desc' ? 'asc' : 'desc';
+            // 키워드 정렬이 변경되면 선택된 키워드 해제
+            selectedKeywordIndex.value = null;
+        };
+
         // 카테고리 상세 보기
         const showCategoryDetail = async (category) => {
             selectedCategory.value = category;
-            keywordDialogVisible.value = true;
             loadingKeywords.value = true;
 
             try {
@@ -509,11 +658,26 @@ export default {
                 }
 
                 await statisticsStore.fetchKeywordStatistics(params);
+                
+                // 스크롤을 키워드 상세 영역으로 이동
+                setTimeout(() => {
+                    const keywordSection = document.querySelector('.keyword-detail-section');
+                    if (keywordSection) {
+                        keywordSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
             } catch (error) {
                 ElMessage.error('키워드 통계를 불러오는데 실패했습니다.');
             } finally {
                 loadingKeywords.value = false;
             }
+        };
+
+        // 키워드 상세 닫기
+        const closeKeywordDetail = () => {
+            selectedCategory.value = null;
+            selectedKeywordIndex.value = null;
+            keywordSortOrder.value = 'desc'; // 정렬 순서도 초기화
         };
 
         // 차트 클릭 핸들러
@@ -545,14 +709,16 @@ export default {
             customStartDate,
             customEndDate,
             sortOrder,
-            keywordDialogVisible,
             selectedCategory,
             loadingKeywords,
+            selectedKeywordIndex,
+            keywordSortOrder,
 
             statistics,
             keywordStatistics,
             users,
             budgetUsages,
+            filteredKeywords,
             sortedCategories,
             chartData,
             keywordChartData,
@@ -571,7 +737,9 @@ export default {
             handlePeriodChange,
             handleCustomDateChange,
             toggleSortOrder,
+            toggleKeywordSortOrder,
             showCategoryDetail,
+            closeKeywordDetail,
             handleChartClick,
 
             // 아이콘들
@@ -727,5 +895,51 @@ export default {
     background-color: #f9fafb;
     border-radius: 0.5rem;
     margin-bottom: 0.5rem;
+}
+
+/* 모바일 키워드 차트 최적화 */
+.mobile-chart {
+    height: 200px !important;
+    margin: 0 auto;
+    max-width: 280px;
+}
+
+.mobile-keyword-list {
+    margin-top: 1rem;
+}
+
+.mobile-keyword-list .keyword-item {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    margin-bottom: 0.375rem;
+}
+
+.mobile-keyword-list .keyword-item .font-medium {
+    font-size: 0.875rem;
+}
+
+.mobile-keyword-list .keyword-item .font-bold {
+    font-size: 0.875rem;
+}
+
+/* 키워드 상세 섹션 최적화 */
+.keyword-detail-section {
+    scroll-margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+    .keyword-chart {
+        height: 180px !important;
+    }
+    
+    .mobile-chart {
+        height: 180px !important;
+        max-width: 100%;
+        margin: 0;
+    }
+    
+    .keyword-detail-section .card {
+        margin: 0 1rem;
+    }
 }
 </style>

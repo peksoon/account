@@ -547,6 +547,45 @@ export default {
     animation: fadeIn 0.3s ease-out;
 }
 
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+    /* 모바일에서 모달 내용 최적화 */
+    .modal-content {
+        border-radius: 1rem 1rem 0 0; /* 상단만 둥근 모서리 */
+        margin: 0;
+        max-height: 100vh;
+        max-height: 100dvh;
+    }
+
+    /* 모바일에서 드롭다운 포퍼 위치 조정 */
+    :deep(.el-select-dropdown) {
+        z-index: 9999 !important;
+        position: fixed !important;
+    }
+
+    /* 모바일에서 폼 요소 간격 조정 */
+    .el-form-item {
+        margin-bottom: 1rem;
+    }
+
+    /* 모바일에서 버튼 크기 최적화 */
+    .el-button {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    /* 모바일에서 입력 필드 높이 최적화 */
+    :deep(.el-input__inner) {
+        height: 44px; /* iOS 권장 터치 영역 */
+    }
+
+    /* 모바일에서 텍스트 영역 최적화 */
+    :deep(.el-textarea__inner) {
+        min-height: 80px;
+        font-size: 16px; /* iOS zoom 방지 */
+    }
+}
+
 .modal-content {
     animation: slideIn 0.3s ease-out;
 }

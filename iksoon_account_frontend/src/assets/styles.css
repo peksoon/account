@@ -19,6 +19,15 @@ body {
   min-height: 100vh;
 }
 
+/* 모달 열릴 때 배경 스크롤 방지 */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  /* iOS에서 스크롤 위치 유지 */
+  -webkit-overflow-scrolling: touch;
+}
+
 /* 커스텀 스크롤바 */
 ::-webkit-scrollbar {
   width: 8px;
@@ -147,11 +156,33 @@ body {
 /* 모달 스타일 */
 .modal-backdrop {
   @apply fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4;
+  /* 모바일에서 스크롤 문제 해결 */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .modal-content {
-  @apply bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto;
+  @apply bg-white rounded-2xl shadow-2xl max-w-md w-full;
+  /* 모바일 안전 높이 사용 */
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem); /* 동적 viewport 지원 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   animation: modalSlideIn 0.3s ease-out;
+  /* 모바일에서 렌더링 최적화 */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* 모바일 전용 모달 스타일 */
+.mobile-modal {
+  @apply rounded-t-2xl rounded-b-none;
+  /* 모바일에서는 전체 높이 사용 */
+  height: calc(100vh - 2rem);
+  height: calc(100dvh - 2rem);
+  max-height: none;
+  /* 하단에서 올라오는 애니메이션 */
+  animation: modalSlideUpMobile 0.3s ease-out;
 }
 
 @keyframes modalSlideIn {
@@ -161,6 +192,17 @@ body {
   }
   to {
     transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideUpMobile {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
     opacity: 1;
   }
 }
@@ -226,6 +268,45 @@ body {
   }
 
   .modal-content {
-    @apply mx-4 max-w-none;
+    @apply mx-2 max-w-none;
+    /* 모바일에서 여백 최소화 */
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* 모바일에서 드롭다운 문제 해결 */
+  .el-select-dropdown {
+    z-index: 9999 !important;
+    /* 모바일에서 터치 이벤트 최적화 */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 모바일 터치 영역 최적화 */
+  .el-select .el-input__wrapper {
+    min-height: 44px; /* iOS 권장 터치 영역 */
+  }
+
+  .el-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 모바일에서 스크롤 성능 최적화 */
+  .modal-content,
+  .el-scrollbar__wrap {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* iOS Safari 주소창 문제 해결 */
+  .modal-backdrop {
+    /* iOS의 동적 viewport 사용 */
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* 모바일에서 폰트 크기 자동 조정 방지 */
+  input, textarea, select {
+    font-size: 16px !important; /* iOS zoom 방지 */
   }
 }
