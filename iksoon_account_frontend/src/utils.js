@@ -11,6 +11,15 @@ export function formatDateToString(date) {
 }
 
 /**
+ * KST 기준 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+ * @returns {string} KST 기준 오늘 날짜 (YYYY-MM-DD 형식)
+ */
+export function getTodayKST() {
+  const now = new Date();
+  return formatDateToString(now);
+}
+
+/**
  * 날짜를 로컬 시간대의 ISO 문자열로 변환
  * @param {Date} date - 변환할 날짜 객체
  * @returns {string} 로컬 시간대의 ISO 문자열 (YYYY-MM-DD HH:mm:ss 형식)

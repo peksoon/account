@@ -213,6 +213,8 @@ import { useDepositPathStore } from '../stores/depositPathStore';
 import { useKeywordStore } from '../stores/keywordStore';
 import { useUserStore } from '../stores/userStore';
 import { useBudgetStore } from '../stores/budgetStore';
+import { useAccountStore } from '../stores/accountStore';
+import { getTodayKST } from '../utils';
 
 export default {
     name: 'AddDataWizard',
@@ -256,6 +258,7 @@ export default {
         const keywordStore = useKeywordStore();
         const userStore = useUserStore();
         const budgetStore = useBudgetStore();
+        const accountStore = useAccountStore();
 
         // State
         const currentStep = ref(0);
@@ -279,7 +282,7 @@ export default {
 
         // 폼 데이터 초기화 - route 파라미터 사용
         const initializeFormData = (accountData) => {
-            const defaultDate = new Date().toISOString().slice(0, 10);
+            const defaultDate = getTodayKST();
             let dateToUse = defaultDate;
             
             // Route 쿼리에서 날짜 가져오기
@@ -497,6 +500,9 @@ export default {
                     emit('budget-save-success');
                     ElMessage.success('지출이 성공적으로 기록되었습니다.');
                 } else {
+                    // 수입 데이터를 accountStore를 통해 저장
+                    await accountStore.saveAccount(accountData);
+                    
                     if (formData.value.keyword_name && formData.value.category_id) {
                         await keywordStore.useKeyword(formData.value.category_id, formData.value.keyword_name);
                     }

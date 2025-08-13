@@ -202,6 +202,7 @@ import { Search, Calendar, FileText, Download } from 'lucide-vue-next';
 import { useAccountStore } from '../stores/accountStore';
 import { useCategoryStore } from '../stores/categoryStore';
 import DetailPopup from './DetailPopup.vue';
+import { getTodayKST } from '../utils';
 
 export default {
   name: 'KeywordSearchModal',
@@ -425,7 +426,7 @@ export default {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `키워드검색결과_${searchQuery.value}_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `키워드검색결과_${searchQuery.value}_${getTodayKST()}.csv`;
       link.click();
 
       ElMessage.success('검색 결과를 내보냈습니다.');

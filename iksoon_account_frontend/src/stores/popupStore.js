@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { getTodayKST } from '../utils';
 
 export const usePopupStore = defineStore('popup', {
   state: () => ({
@@ -20,7 +21,7 @@ export const usePopupStore = defineStore('popup', {
   }),
   actions: {
     openAddPopup(selectedDate = null) {
-      const date = selectedDate || new Date().toISOString().slice(0, 10);
+      const date = selectedDate || getTodayKST();
 
       // 새로운 계정 데이터 설정 (AddPopup에서 기대하는 필드명으로)
       this.newAccount = {

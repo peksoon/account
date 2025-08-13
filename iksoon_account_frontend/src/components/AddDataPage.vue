@@ -155,6 +155,7 @@ import { usePaymentMethodStore } from '../stores/paymentMethodStore';
 import { useDepositPathStore } from '../stores/depositPathStore';
 import { useKeywordStore } from '../stores/keywordStore';
 import { useUserStore } from '../stores/userStore';
+import { getTodayKST } from '../utils';
 import { useBudgetStore } from '../stores/budgetStore';
 
 export default {
@@ -206,7 +207,7 @@ export default {
 
         // 폼 데이터 초기화
         const initializeFormData = (initialData) => {
-            const defaultDate = new Date().toISOString().slice(0, 10);
+            const defaultDate = getTodayKST();
             let dateToUse = defaultDate;
             
             if (props.selectedDate && props.selectedDate !== '') {

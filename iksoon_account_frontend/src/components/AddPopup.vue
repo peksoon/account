@@ -196,6 +196,7 @@ import { usePaymentMethodStore } from '../stores/paymentMethodStore';
 import { useDepositPathStore } from '../stores/depositPathStore';
 import { useKeywordStore } from '../stores/keywordStore';
 import { useUserStore } from '../stores/userStore';
+import { getTodayKST } from '../utils';
 import { useBudgetStore } from '../stores/budgetStore';
 
 export default {
@@ -231,7 +232,7 @@ export default {
 
         // 로컬 계정 데이터 초기화 함수
         const initializeLocalAccount = (accountData) => {
-            const defaultDate = new Date().toISOString().slice(0, 10);
+            const defaultDate = getTodayKST();
 
             // 우선순위: props.selectedDate > accountData.date > defaultDate
             let dateToUse = defaultDate;

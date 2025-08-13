@@ -68,6 +68,7 @@
 <script>
 import { ref, computed, watch, onMounted } from 'vue';
 import { Calendar, Clock, Sun, Sunrise, Sunset } from 'lucide-vue-next';
+import { getTodayKST, formatDateToString } from '../../utils';
 
 export default {
     name: 'DateStep',
@@ -97,13 +98,13 @@ export default {
         const hasError = computed(() => !!props.errors.date);
         const errorMessage = computed(() => props.errors.date || '');
 
-        // 오늘 날짜
-        const today = new Date().toISOString().slice(0, 10);
+        // 오늘 날짜 (KST 기준)
+        const today = getTodayKST();
         
-        // 어제 날짜
+        // 어제 날짜 (KST 기준)
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().slice(0, 10);
+        const yesterdayStr = formatDateToString(yesterday);
 
         // 빠른 날짜 선택 옵션
         const quickDates = computed(() => [

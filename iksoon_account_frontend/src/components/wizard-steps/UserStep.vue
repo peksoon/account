@@ -45,18 +45,20 @@
                 </div>
             </div>
 
-            <!-- 빠른 선택 (최근 사용자) -->
-            <div class="quick-users" v-if="recentUsers.length > 0 && !selectedUser">
-                <p class="quick-users-label">최근 사용자</p>
-                <div class="quick-users-grid">
+            <!-- 모든 사용자 버튼 목록 -->
+            <div class="all-users" v-if="allUsers.length > 0 && !selectedUser">
+                <p class="all-users-label">사용자 목록</p>
+                <div class="all-users-grid">
                     <button
-                        v-for="user in recentUsers"
+                        v-for="user in allUsers"
                         :key="user.value"
                         @click="selectUser(user.value)"
-                        class="quick-user-btn"
+                        class="user-btn"
+                        :class="{ 'recent': user.isRecent }"
                     >
                         <User class="w-4 h-4 mr-2" />
                         {{ user.label }}
+                        <div v-if="user.isRecent" class="recent-badge">최근</div>
                     </button>
                 </div>
             </div>
@@ -118,6 +120,17 @@ export default {
             return userOptions.value
                 .filter(user => user.isRecent)
                 .slice(0, 4);
+        });
+
+        // 모든 사용자 (최근 사용자를 앞에 정렬)
+        const allUsers = computed(() => {
+            return [...userOptions.value].sort((a, b) => {
+                // 최근 사용자를 먼저 정렬
+                if (a.isRecent && !b.isRecent) return -1;
+                if (!a.isRecent && b.isRecent) return 1;
+                // 같은 상태라면 이름순으로 정렬
+                return a.label.localeCompare(b.label);
+            });
         });
 
         // 이벤트 핸들러들
@@ -182,6 +195,7 @@ export default {
             errorMessage,
             userOptions,
             recentUsers,
+            allUsers,
             handleUserChange,
             handleDropdownToggle,
             selectUser,
@@ -240,6 +254,44 @@ export default {
     @apply mt-2 text-sm text-red-600;
 }
 
+/* 모든 사용자 버튼 스타일 */
+.all-users {
+    @apply text-center;
+}
+
+.all-users-label {
+    @apply text-sm text-gray-600 mb-4 font-medium;
+}
+
+.all-users-grid {
+    @apply grid grid-cols-2 gap-3;
+}
+
+.user-btn {
+    @apply relative flex items-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg transition-all duration-200 hover:shadow-sm;
+}
+
+.user-btn:hover {
+    @apply bg-gray-50 border-gray-400 transform translate-y-[-1px];
+}
+
+.user-btn:active {
+    @apply bg-gray-100 transform translate-y-0;
+}
+
+.user-btn.recent {
+    @apply border-blue-300 bg-blue-50 text-blue-700;
+}
+
+.user-btn.recent:hover {
+    @apply border-blue-400 bg-blue-100;
+}
+
+.recent-badge {
+    @apply absolute top-1 right-1 text-xs text-blue-600 bg-blue-200 px-1.5 py-0.5 rounded-md font-medium;
+}
+
+/* 기존 빠른 선택 스타일 (백업용, 현재는 사용하지 않음) */
 .quick-users {
     @apply text-center;
 }
@@ -291,6 +343,19 @@ export default {
         font-size: 16px; /* iOS zoom 방지 */
     }
     
+    .all-users-grid {
+        @apply grid-cols-1 gap-3;
+    }
+    
+    .user-btn {
+        @apply px-4 py-4 text-base;
+        min-height: 44px; /* iOS 권장 터치 영역 */
+    }
+    
+    .recent-badge {
+        @apply text-xs px-1 py-0.5;
+    }
+    
     .quick-users-grid {
         @apply grid-cols-1 gap-3;
     }
@@ -304,6 +369,10 @@ export default {
 /* 접근성 */
 .user-select:focus-within {
     @apply ring-2 ring-blue-500 ring-offset-2;
+}
+
+.user-btn:focus {
+    @apply outline-none ring-2 ring-blue-500 ring-offset-2;
 }
 
 .quick-user-btn:focus {
@@ -324,6 +393,10 @@ export default {
 }
 
 /* 애니메이션 */
+.all-users {
+    animation: fadeInUp 0.3s ease-out;
+}
+
 .quick-users {
     animation: fadeInUp 0.3s ease-out;
 }
