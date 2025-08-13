@@ -45,6 +45,10 @@
                   :class="isMobile ? 'text-xs px-2 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
                   {{ isMobile ? '📊' : '📊 통계' }}
                 </el-button>
+                <el-button @click="openKeywordSearch" type="primary" :icon="Search" :size="isMobile ? 'small' : 'large'"
+                  :class="isMobile ? 'text-xs px-2 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
+                  {{ isMobile ? '🔍' : '🔍 키워드 검색' }}
+                </el-button>
                 <el-button @click="openBudgetManager" type="warning" :size="isMobile ? 'small' : 'large'"
                   :class="isMobile ? 'text-xs px-2 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
                   {{ isMobile ? '💰' : '💰 기준치 관리' }}
@@ -226,6 +230,9 @@
     <!-- 키워드 관리 모달 -->
     <KeywordManager v-if="showKeywordManager" :category-id="keywordManagerCategoryId" @close="closeKeywordManager" />
 
+    <!-- 키워드 검색 모달 -->
+    <KeywordSearchModal v-if="showKeywordSearchModal" @close="closeKeywordSearch" />
+
     <!-- 기준치 알림 팝업 -->
     <BudgetAlertPopup :is-visible="showBudgetAlert" :budget-usage="budgetAlertData.budgetUsage"
       :expense-amount="budgetAlertData.expenseAmount" :expense-date="budgetAlertData.expenseDate"
@@ -258,13 +265,15 @@ import KeywordManager from './KeywordManager.vue';
 import StatisticsDashboard from './StatisticsDashboard.vue';
 import BudgetAlertPopup from './BudgetAlertPopup.vue';
 import BudgetManager from './BudgetManager.vue';
+import KeywordSearchModal from './KeywordSearchModal.vue';
 import {
   Calendar,
   BarChart,
   TrendingUp,
   TrendingDown,
   Wallet,
-  DollarSign
+  DollarSign,
+  Search
 } from 'lucide-vue-next';
 
 
@@ -280,6 +289,7 @@ export default {
     StatisticsDashboard,
     BudgetAlertPopup,
     BudgetManager,
+    KeywordSearchModal,
     Calendar,
     TrendingUp,
     TrendingDown,
@@ -307,6 +317,7 @@ export default {
     const showStatistics = ref(false);
     const showKeywordManager = ref(false);
     const keywordManagerCategoryId = ref(null);
+    const showKeywordSearchModal = ref(false);
 
     // 기준치 관련 상태
     const showBudgetAlert = ref(false);
@@ -723,6 +734,14 @@ export default {
       viewMode.value = 'calendar';
     };
 
+    const openKeywordSearch = () => {
+      showKeywordSearchModal.value = true;
+    };
+
+    const closeKeywordSearch = () => {
+      showKeywordSearchModal.value = false;
+    };
+
     const goBackToCalendar = () => {
       viewMode.value = 'calendar';
     };
@@ -858,6 +877,7 @@ export default {
       showCategoryManager,
       showPaymentMethodManager,
       showDepositPathManager,
+      showKeywordSearchModal,
 
       // 관리 모달 메서드들
       openCategoryManager,
@@ -874,6 +894,8 @@ export default {
       keywordManagerCategoryId,
       openStatistics,
       closeStatistics,
+      openKeywordSearch,
+      closeKeywordSearch,
       goBackToCalendar,
       showStatistics,
       viewMode,
@@ -892,7 +914,8 @@ export default {
       BarChart,
       TrendingUp,
       TrendingDown,
-      Wallet
+      Wallet,
+      Search
     };
   },
 };

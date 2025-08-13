@@ -106,5 +106,116 @@ export const useAccountStore = defineStore('account', {
         return dataDate === date;
       });
     },
+
+    async searchByKeyword(keyword, startDate, endDate) {
+      try {
+        const results = [];
+        
+        // Search in expense accounts
+        const outRes = await axios.get(
+          `${BACKEND_API_BASE_URL}/v2/search-keyword-accounts`, {
+            params: {
+              keyword,
+              start_date: startDate,
+              end_date: endDate,
+              type: 'out'
+            }
+          }
+        );
+        
+        // Search in income accounts
+        const inRes = await axios.get(
+          `${BACKEND_API_BASE_URL}/v2/search-keyword-accounts`, {
+            params: {
+              keyword,
+              start_date: startDate,
+              end_date: endDate,
+              type: 'in'
+            }
+          }
+        );
+
+        const outData = outRes.data || [];
+        const inData = inRes.data || [];
+        
+        results.push(
+          ...outData.map(item => ({ ...item, type: 'out' })),
+          ...inData.map(item => ({ ...item, type: 'in' }))
+        );
+        
+        return results;
+      } catch (error) {
+        console.error('키워드 검색 오류:', error);
+        // Fallback to local search if API fails
+        return this.searchByKeywordLocal(keyword, startDate, endDate);
+      }
+    },
+
+    searchByKeywordLocal(keyword, startDate, endDate) {
+      if (!keyword) return [];
+      
+      const lowerKeyword = keyword.toLowerCase();
+      
+      return this.monthlyData.filter(item => {
+        // Check if item is within date range
+        const itemDate = item.date.split(' ')[0];
+        if (itemDate < startDate || itemDate > endDate) return false;
+        
+        // Check if keyword matches (case-insensitive)
+        const keywordMatch = item.keyword_name && 
+          item.keyword_name.toLowerCase().includes(lowerKeyword);
+        const memoMatch = item.memo && 
+          item.memo.toLowerCase().includes(lowerKeyword);
+        
+        return keywordMatch || memoMatch;
+      });
+    },
+
+    async fetchAccountsInDateRange(startDate, endDate) {
+      try {
+        const results = [];
+        
+        // Fetch expense accounts in date range
+        const outRes = await axios.get(
+          `${BACKEND_API_BASE_URL}/v2/out-accounts`, {
+            params: {
+              start_date: startDate,
+              end_date: endDate
+            }
+          }
+        );
+        
+        // Fetch income accounts in date range
+        const inRes = await axios.get(
+          `${BACKEND_API_BASE_URL}/v2/in-accounts`, {
+            params: {
+              start_date: startDate,
+              end_date: endDate
+            }
+          }
+        );
+
+        const outData = outRes.data || [];
+        const inData = inRes.data || [];
+        
+        results.push(
+          ...outData.map(item => ({ ...item, type: 'out' })),
+          ...inData.map(item => ({ ...item, type: 'in' }))
+        );
+        
+        return results;
+      } catch (error) {
+        console.error('기간별 계정 조회 오류:', error);
+        // Fallback to local search if API fails
+        return this.fetchAccountsInDateRangeLocal(startDate, endDate);
+      }
+    },
+
+    fetchAccountsInDateRangeLocal(startDate, endDate) {
+      return this.monthlyData.filter(item => {
+        const itemDate = item.date.split(' ')[0];
+        return itemDate >= startDate && itemDate <= endDate;
+      });
+    },
   },
 });
