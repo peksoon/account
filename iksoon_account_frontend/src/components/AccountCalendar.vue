@@ -213,11 +213,6 @@
     </div>
 
     <!-- 팝업들 -->
-    <AddPopup v-if="showAddPopup" :key="selectedDate" :newAccount="newAccount" :selectedDate="selectedDate"
-      @close="closeAddPopup" @save="saveAccount" @open-category-manager="openCategoryManager"
-      @open-keyword-manager="openKeywordManager" @open-payment-method-manager="openPaymentMethodManager"
-      @open-deposit-path-manager="openDepositPathManager" @open-user-manager="openUserManager"
-      @budget-alert="handleBudgetAlert" @budget-save-success="handleBudgetSaveSuccess" />
 
     <DetailPopup v-if="showCustomPopup" :eventDetail="eventDetail" :isEditMode="isEditMode" @close="closePopup"
       @edit="openEditMode" @update="updateAccount" @delete="deleteAccount" @cancel-edit="cancelEdit" />
@@ -243,8 +238,9 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -253,7 +249,6 @@ import { useCalendarStore } from '../stores/calendarStore';
 import { usePopupStore } from '../stores/popupStore';
 import { useCategoryStore } from '../stores/categoryStore';
 // import { formatDateToString } from '../utils';
-import AddPopup from './AddPopup.vue';
 import DetailPopup from './DetailPopup.vue';
 import UserManager from './UserManager.vue';
 import CategoryManager from './CategoryManager.vue';
@@ -276,7 +271,6 @@ import {
 export default {
   components: {
     FullCalendar,
-    AddPopup,
     DetailPopup,
     UserManager,
     CategoryManager,
@@ -293,6 +287,7 @@ export default {
     DollarSign
   },
   setup() {
+    const router = useRouter();
     const accountStore = useAccountStore();
     const calendarStore = useCalendarStore();
     const popupStore = usePopupStore();
@@ -384,6 +379,19 @@ export default {
         // 모바일에서는 날짜 숫자만 작게 표시
         const fontSize = window.innerWidth < 768 ? 'text-xs' : 'text-sm';
         return { html: `<div class="${fontSize} font-medium">${arg.dayNumberText.replace('일', '')}</div>` };
+      },
+      // 달력 렌더링 완료 후 콜백 - 초기 렌더링 후에만 실행
+      datesSet: () => {
+        // 최초 로드 시에만 추가 렌더링 실행
+        if (!calendar.value?._initialRenderComplete) {
+          setTimeout(() => {
+            if (calendar.value) {
+              const calendarApi = calendar.value.getApi();
+              calendarApi.render();
+              calendar.value._initialRenderComplete = true;
+            }
+          }, 50);
+        }
       }
     });
 
@@ -466,6 +474,13 @@ export default {
         const calendarApi = calendar.value.getApi();
         calendarApi.removeAllEvents();
         calendarApi.addEventSource(events);
+        
+        // 초기 로드 시에만 강제 렌더링
+        if (!calendar.value._initialRenderComplete) {
+          setTimeout(() => {
+            calendarApi.render();
+          }, 100);
+        }
       }
     };
 
@@ -498,6 +513,19 @@ export default {
         const dateStr = info.event.startStr;
         selectedDate.value = dateStr;
         selectedDateData.value = accountStore.fetchDataForDate(dateStr);
+        
+        // 이전 선택된 날짜 클래스 제거
+        if (calendar.value) {
+          const calendarApi = calendar.value.getApi();
+          const allDays = calendarApi.el.querySelectorAll('.fc-day-selected');
+          allDays.forEach(day => day.classList.remove('fc-day-selected'));
+          
+          // 현재 날짜에 선택 클래스 추가
+          const dayCell = calendarApi.el.querySelector(`[data-date="${dateStr}"]`);
+          if (dayCell) {
+            dayCell.classList.add('fc-day-selected');
+          }
+        }
         return;
       }
 
@@ -624,20 +652,27 @@ export default {
       }
     };
 
-    // 팝업 관련 메서드
-    const openAddPopup = () => popupStore.openAddPopup();
+    // 팝업 관련 메서드 - 전체 페이지로 변경
+    const openAddPopup = () => {
+      router.push('/add-data');
+    };
     const closeAddPopup = () => popupStore.closeAddPopup();
     const closePopup = () => popupStore.closePopup();
     const openEditMode = () => popupStore.openEditMode();
     const cancelEdit = () => popupStore.closePopup();
     const showDetailPopup = (data) => popupStore.showDetailPopup(data);
 
-    // 선택된 날짜로 팝업 열기
+    // 선택된 날짜로 팝업 열기 - 전체 페이지로 변경
     const openAddPopupForSelectedDate = () => {
       if (selectedDate.value) {
-        popupStore.openAddPopup(selectedDate.value);
+        router.push({
+          path: '/add-data',
+          query: {
+            date: selectedDate.value
+          }
+        });
       } else {
-        popupStore.openAddPopup();
+        router.push('/add-data');
       }
     };
 
@@ -763,6 +798,16 @@ export default {
       } catch (error) {
         console.error('카테고리 목록 로드 오류:', error);
       }
+      
+      // DOM이 완전히 렌더링된 후 달력 재렌더링 (한 번만)
+      await nextTick();
+      setTimeout(() => {
+        if (calendar.value) {
+          const calendarApi = calendar.value.getApi();
+          calendarApi.render();
+          calendarApi.updateSize();
+        }
+      }, 100);
     });
 
     return {
@@ -910,11 +955,11 @@ export default {
 }
 
 .modern-calendar :deep(.fc-theme-standard td) {
-  border: 1px solid #e5e7eb;
+  border: 0.5px solid #e5e7eb;
 }
 
 .modern-calendar :deep(.fc-theme-standard th) {
-  border: 1px solid #e5e7eb;
+  border: 0.5px solid #e5e7eb;
   background: #f9fafb;
   font-weight: 600;
   color: #374151;
@@ -967,7 +1012,13 @@ export default {
   }
 
   .modern-calendar :deep(.fc-theme-standard td) {
-    border-width: 0.5px;
+    border-width: 0.5px !important;
+    border-color: #e5e7eb !important;
+  }
+  
+  .modern-calendar :deep(.fc-theme-standard th) {
+    border-width: 0.5px !important;
+    border-color: #e5e7eb !important;
   }
 }
 
@@ -982,18 +1033,35 @@ export default {
 
 .modern-calendar :deep(.fc-day-today) {
   background: #f0f9ff !important;
-  border: 2px solid #93c5fd !important;
+  border: 1px solid #93c5fd !important;
 }
 
 .modern-calendar :deep(.fc-day-selected) {
   background: #f0fdf4 !important;
   border: 2px solid #86efac !important;
+  position: relative !important;
+  z-index: 1 !important;
 }
 
 /* 선택된 날짜가 오늘인 경우 초록색 테두리를 우선 표시 */
 .modern-calendar :deep(.fc-day-today.fc-day-selected) {
   background: #f0fdf4 !important;
   border: 2px solid #86efac !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* 이벤트가 있는 선택된 날짜 - 우선순위 높임 */
+.modern-calendar :deep(.fc-day-selected .fc-daygrid-day-frame) {
+  background: #f0fdf4 !important;
+}
+
+.modern-calendar :deep(.fc-day-selected .fc-daygrid-day-events) {
+  background: transparent !important;
+}
+
+.modern-calendar :deep(.fc-day-selected .fc-daygrid-day-bg) {
+  background: #f0fdf4 !important;
 }
 
 .modern-calendar :deep(.fc-daygrid-day-number) {
@@ -1065,12 +1133,10 @@ export default {
   border: none !important;
   box-shadow: none !important;
   color: #059669 !important;
-  /* 진한 초록 */
   font-weight: 500 !important;
   margin: 0.5px 0 !important;
   padding: 1px 2px !important;
   line-height: 1.2 !important;
-  /* 동적 폰트 크기 */
   font-size: clamp(0.6rem, 1.5vw, 0.8rem) !important;
 }
 
@@ -1083,12 +1149,10 @@ export default {
   border: none !important;
   box-shadow: none !important;
   color: #dc2626 !important;
-  /* 진한 빨강 */
   font-weight: 500 !important;
   margin: 0.5px 0 !important;
   padding: 1px 2px !important;
   line-height: 1.2 !important;
-  /* 동적 폰트 크기 */
   font-size: clamp(0.6rem, 1.5vw, 0.8rem) !important;
 }
 
@@ -1098,7 +1162,6 @@ export default {
 
 /* 화면 크기별 세밀한 조정 */
 @media (max-width: 480px) {
-
   .modern-calendar :deep(.income-total),
   .modern-calendar :deep(.expense-total) {
     font-size: clamp(0.5rem, 2vw, 0.65rem) !important;
@@ -1108,7 +1171,6 @@ export default {
 }
 
 @media (min-width: 481px) and (max-width: 768px) {
-
   .modern-calendar :deep(.income-total),
   .modern-calendar :deep(.expense-total) {
     font-size: clamp(0.6rem, 1.8vw, 0.75rem) !important;
@@ -1116,7 +1178,6 @@ export default {
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
-
   .modern-calendar :deep(.income-total),
   .modern-calendar :deep(.expense-total) {
     font-size: clamp(0.7rem, 1.2vw, 0.85rem) !important;
@@ -1124,7 +1185,6 @@ export default {
 }
 
 @media (min-width: 1025px) {
-
   .modern-calendar :deep(.income-total),
   .modern-calendar :deep(.expense-total) {
     font-size: clamp(0.75rem, 1vw, 0.9rem) !important;

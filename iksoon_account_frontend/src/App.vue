@@ -2,7 +2,7 @@
   <div id="app" class="min-h-screen">
     <!-- 메인 컨텐츠 -->
     <main class="relative">
-      <AccountCalendar />
+      <router-view />
     </main>
     
     <!-- 푸터 -->
@@ -24,13 +24,8 @@
 </template>
 
 <script>
-import AccountCalendar from "./components/AccountCalendar.vue";
-
 export default {
   name: "App",
-  components: {
-    AccountCalendar,
-  },
 };
 </script>
 

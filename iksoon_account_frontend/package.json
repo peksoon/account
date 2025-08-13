@@ -21,7 +21,8 @@
     "lucide-vue-next": "^0.294.0",
     "pinia": "^2.3.0",
     "vue": "^3.2.13",
-    "vue-chartjs": "^5.2.0"
+    "vue-chartjs": "^5.2.0",
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.8",
