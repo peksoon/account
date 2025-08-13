@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	apiErrors "iksoon_account_backend/errors"
@@ -88,4 +89,45 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 		rw.statusCode = 200
 	}
 	return rw.ResponseWriter.Write(b)
+}
+
+// ValidateHTTPMethod HTTP 메소드 유효성 검증
+func ValidateHTTPMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
+	if r.Method != expectedMethod {
+		SendError(w, apiErrors.ErrInvalidRequest.WithMessage("지원되지 않는 메소드입니다"))
+		return false
+	}
+	return true
+}
+
+// ParseIDFromQuery URL 쿼리에서 ID 파라미터를 파싱하고 검증
+func ParseIDFromQuery(w http.ResponseWriter, r *http.Request, paramName string) (int, bool) {
+	idStr := r.URL.Query().Get(paramName)
+	if idStr == "" {
+		SendError(w, apiErrors.ErrMissingRequired.WithMessage(paramName+" ID는 필수입니다"))
+		return 0, false
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		SendError(w, apiErrors.ErrInvalidData.WithMessage("올바르지 않은 "+paramName+" ID입니다"))
+		return 0, false
+	}
+
+	return id, true
+}
+
+// ValidateJSONRequest JSON 요청 데이터를 디코드하고 검증
+func ValidateJSONRequest(w http.ResponseWriter, r *http.Request, req interface{}) bool {
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		LogError("JSON 디코드", err)
+		SendError(w, apiErrors.ErrInvalidJSON)
+		return false
+	}
+	return true
+}
+
+// CreateSuccessMessage 성공 메시지 응답 생성
+func CreateSuccessMessage(message string) map[string]string {
+	return map[string]string{"message": message}
 }

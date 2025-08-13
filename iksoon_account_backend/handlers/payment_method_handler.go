@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	apiErrors "iksoon_account_backend/errors"
 	"iksoon_account_backend/models"
 	"iksoon_account_backend/utils"
 )
@@ -24,48 +25,52 @@ type PaymentMethodRepository interface {
 	CheckPaymentMethodUsage(paymentMethodID int) (bool, error)
 }
 
-// 결제수단 목록 조회 핸들러
+// GetPaymentMethodsHandler 결제수단 목록 조회 핸들러
 func (h *PaymentMethodHandler) GetPaymentMethodsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		utils.SendErrorResponse(w, http.StatusMethodNotAllowed, models.ErrCodeInvalidInput, "지원되지 않는 메소드입니다.")
+	if !utils.ValidateHTTPMethod(w, r, http.MethodGet) {
 		return
 	}
+
+	utils.Debug("결제수단 목록 조회 요청")
 
 	paymentMethods, err := h.DB.GetPaymentMethods()
 	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "결제수단 조회 중 오류 발생")
+		utils.LogDatabaseError("결제수단 목록 조회", err)
+		utils.SendError(w, apiErrors.ErrDatabaseConnection.WithDetails("결제수단 목록 조회 실패"))
 		return
 	}
 
+	utils.Debug("결제수단 목록 조회 성공: %d개", len(paymentMethods))
 	utils.SendSuccessResponse(w, paymentMethods)
 }
 
-// 결제수단 생성 핸들러
+// CreatePaymentMethodHandler 결제수단 생성 핸들러
 func (h *PaymentMethodHandler) CreatePaymentMethodHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		utils.SendErrorResponse(w, http.StatusMethodNotAllowed, models.ErrCodeInvalidInput, "지원되지 않는 메소드입니다.")
+	if !utils.ValidateHTTPMethod(w, r, http.MethodPost) {
 		return
 	}
 
 	var req models.PaymentMethodRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "잘못된 요청 데이터입니다.")
+	if !utils.ValidateJSONRequest(w, r, &req) {
 		return
 	}
 
+	utils.Debug("결제수단 생성 요청: %+v", req)
+
 	// 입력 검증
 	if req.Name == "" {
-		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "결제수단 이름은 필수입니다.")
+		utils.SendError(w, apiErrors.ErrMissingRequired.WithMessage("결제수단 이름은 필수입니다"))
 		return
 	}
 
 	paymentMethodID, err := h.DB.CreatePaymentMethod(req.Name, req.ParentID)
 	if err != nil {
 		if strings.Contains(err.Error(), "이미 존재하는") {
-			utils.SendErrorResponse(w, http.StatusConflict, models.ErrCodeDuplicateEntry, err.Error())
+			utils.SendError(w, apiErrors.ErrAlreadyExists.WithMessage(err.Error()))
 			return
 		}
-		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "결제수단 생성 중 오류 발생")
+		utils.LogDatabaseError("결제수단 생성", err)
+		utils.SendError(w, apiErrors.ErrDatabaseConnection.WithDetails("결제수단 생성 실패"))
 		return
 	}
 
@@ -74,6 +79,7 @@ func (h *PaymentMethodHandler) CreatePaymentMethodHandler(w http.ResponseWriter,
 		"message": "결제수단이 성공적으로 생성되었습니다.",
 	}
 
+	utils.Debug("결제수단 생성 성공: ID %d", paymentMethodID)
 	utils.SendCreatedResponse(w, response)
 }
 

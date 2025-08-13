@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	apiErrors "iksoon_account_backend/errors"
 	"iksoon_account_backend/models"
 	"iksoon_account_backend/utils"
 )
@@ -24,48 +25,52 @@ type DepositPathRepository interface {
 	CheckDepositPathUsage(depositPathID int) (bool, error)
 }
 
-// 입금경로 목록 조회 핸들러
+// GetDepositPathsHandler 입금경로 목록 조회 핸들러
 func (h *DepositPathHandler) GetDepositPathsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		utils.SendErrorResponse(w, http.StatusMethodNotAllowed, models.ErrCodeInvalidInput, "지원되지 않는 메소드입니다.")
+	if !utils.ValidateHTTPMethod(w, r, http.MethodGet) {
 		return
 	}
+
+	utils.Debug("입금경로 목록 조회 요청")
 
 	depositPaths, err := h.DB.GetDepositPaths()
 	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "입금경로 조회 중 오류 발생")
+		utils.LogDatabaseError("입금경로 목록 조회", err)
+		utils.SendError(w, apiErrors.ErrDatabaseConnection.WithDetails("입금경로 목록 조회 실패"))
 		return
 	}
 
+	utils.Debug("입금경로 목록 조회 성공: %d개", len(depositPaths))
 	utils.SendSuccessResponse(w, depositPaths)
 }
 
-// 입금경로 생성 핸들러
+// CreateDepositPathHandler 입금경로 생성 핸들러
 func (h *DepositPathHandler) CreateDepositPathHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		utils.SendErrorResponse(w, http.StatusMethodNotAllowed, models.ErrCodeInvalidInput, "지원되지 않는 메소드입니다.")
+	if !utils.ValidateHTTPMethod(w, r, http.MethodPost) {
 		return
 	}
 
 	var req models.DepositPathRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "잘못된 요청 데이터입니다.")
+	if !utils.ValidateJSONRequest(w, r, &req) {
 		return
 	}
 
+	utils.Debug("입금경로 생성 요청: %+v", req)
+
 	// 입력 검증
 	if req.Name == "" {
-		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "입금경로 이름은 필수입니다.")
+		utils.SendError(w, apiErrors.ErrMissingRequired.WithMessage("입금경로 이름은 필수입니다"))
 		return
 	}
 
 	depositPathID, err := h.DB.CreateDepositPath(req.Name)
 	if err != nil {
 		if strings.Contains(err.Error(), "이미 존재하는") {
-			utils.SendErrorResponse(w, http.StatusConflict, models.ErrCodeDuplicateEntry, err.Error())
+			utils.SendError(w, apiErrors.ErrAlreadyExists.WithMessage(err.Error()))
 			return
 		}
-		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "입금경로 생성 중 오류 발생")
+		utils.LogDatabaseError("입금경로 생성", err)
+		utils.SendError(w, apiErrors.ErrDatabaseConnection.WithDetails("입금경로 생성 실패"))
 		return
 	}
 
@@ -74,6 +79,7 @@ func (h *DepositPathHandler) CreateDepositPathHandler(w http.ResponseWriter, r *
 		"message": "입금경로가 성공적으로 생성되었습니다.",
 	}
 
+	utils.Debug("입금경로 생성 성공: ID %d", depositPathID)
 	utils.SendCreatedResponse(w, response)
 }
 
