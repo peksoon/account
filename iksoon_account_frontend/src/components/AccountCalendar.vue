@@ -380,18 +380,19 @@ export default {
         const fontSize = window.innerWidth < 768 ? 'text-xs' : 'text-sm';
         return { html: `<div class="${fontSize} font-medium">${arg.dayNumberText.replace('일', '')}</div>` };
       },
-      // 달력 렌더링 완료 후 콜백 - 초기 렌더링 후에만 실행
+      // 달력 렌더링 완료 후 콜백 - 테두리 스타일 확인
       datesSet: () => {
-        // 최초 로드 시에만 추가 렌더링 실행
-        if (!calendar.value?._initialRenderComplete) {
-          setTimeout(() => {
-            if (calendar.value) {
-              const calendarApi = calendar.value.getApi();
-              calendarApi.render();
-              calendar.value._initialRenderComplete = true;
+        // DOM 업데이트 후 테두리 클래스 강제 적용
+        nextTick(() => {
+          if (calendar.value) {
+            const calendarEl = calendar.value.getApi().el;
+            if (calendarEl) {
+              // FullCalendar CSS 클래스 재적용 트리거
+              calendarEl.classList.remove('modern-calendar');
+              calendarEl.classList.add('modern-calendar');
             }
-          }, 50);
-        }
+          }
+        });
       }
     });
 
@@ -474,13 +475,8 @@ export default {
         const calendarApi = calendar.value.getApi();
         calendarApi.removeAllEvents();
         calendarApi.addEventSource(events);
-        
-        // 초기 로드 시에만 강제 렌더링
-        if (!calendar.value._initialRenderComplete) {
-          setTimeout(() => {
-            calendarApi.render();
-          }, 100);
-        }
+
+
       }
     };
 
@@ -513,13 +509,13 @@ export default {
         const dateStr = info.event.startStr;
         selectedDate.value = dateStr;
         selectedDateData.value = accountStore.fetchDataForDate(dateStr);
-        
+
         // 이전 선택된 날짜 클래스 제거
         if (calendar.value) {
           const calendarApi = calendar.value.getApi();
           const allDays = calendarApi.el.querySelectorAll('.fc-day-selected');
           allDays.forEach(day => day.classList.remove('fc-day-selected'));
-          
+
           // 현재 날짜에 선택 클래스 추가
           const dayCell = calendarApi.el.querySelector(`[data-date="${dateStr}"]`);
           if (dayCell) {
@@ -798,14 +794,23 @@ export default {
       } catch (error) {
         console.error('카테고리 목록 로드 오류:', error);
       }
-      
-      // DOM이 완전히 렌더링된 후 달력 재렌더링 (한 번만)
+
+      // DOM이 완전히 렌더링된 후 캘린더 안정화
       await nextTick();
       setTimeout(() => {
         if (calendar.value) {
           const calendarApi = calendar.value.getApi();
-          calendarApi.render();
           calendarApi.updateSize();
+
+          // 테두리 스타일 재적용을 위한 클래스 토글
+          const calendarEl = calendarApi.el;
+          if (calendarEl) {
+            calendarEl.classList.remove('modern-calendar');
+            // 즉시 재적용
+            requestAnimationFrame(() => {
+              calendarEl.classList.add('modern-calendar');
+            });
+          }
         }
       }, 100);
     });
@@ -929,25 +934,25 @@ export default {
   color: inherit !important;
 }
 
-/* 클래스별 직접 색상 지정 */
+/* 클래스별 직접 색상 지정 - 파스텔 톤 */
 .modern-calendar :deep(.fc-event.income-total),
 .modern-calendar :deep(.fc-event.income-total *) {
-  color: #059669 !important;
+  color: #34d399 !important;
 }
 
 .modern-calendar :deep(.fc-event.expense-total),
 .modern-calendar :deep(.fc-event.expense-total *) {
-  color: #dc2626 !important;
+  color: #f87171 !important;
 }
 
 .modern-calendar :deep(.fc-event.income-event),
 .modern-calendar :deep(.fc-event.income-event *) {
-  color: #059669 !important;
+  color: #34d399 !important;
 }
 
 .modern-calendar :deep(.fc-event.expense-event),
 .modern-calendar :deep(.fc-event.expense-event *) {
-  color: #dc2626 !important;
+  color: #f87171 !important;
 }
 
 .modern-calendar :deep(.fc-scrollgrid) {
@@ -964,6 +969,16 @@ export default {
   font-weight: 600;
   color: #374151;
   padding: 12px 8px;
+}
+
+/* 테두리 스타일 강화 - 초기 렌더링 누락 방지 */
+.modern-calendar :deep(.fc-scrollgrid-section) {
+  border: inherit;
+}
+
+.modern-calendar :deep(.fc-scrollgrid-sync-table) {
+  border-spacing: 0;
+  border-collapse: separate;
 }
 
 /* 텍스트 생략 방지 및 가독성 개선 */
@@ -1015,7 +1030,7 @@ export default {
     border-width: 0.5px !important;
     border-color: #e5e7eb !important;
   }
-  
+
   .modern-calendar :deep(.fc-theme-standard th) {
     border-width: 0.5px !important;
     border-color: #e5e7eb !important;
@@ -1095,22 +1110,22 @@ export default {
 
 .modern-calendar :deep(.expense-event) {
   background: transparent !important;
-  color: #dc2626 !important;
-  /* 진한 빨강 */
+  color: #f87171 !important;
+  /* 파스텔 레드 */
 }
 
 .modern-calendar :deep(.expense-event .fc-event-title) {
-  color: #dc2626 !important;
+  color: #f87171 !important;
 }
 
 .modern-calendar :deep(.income-event) {
   background: transparent !important;
-  color: #059669 !important;
-  /* 진한 초록 */
+  color: #34d399 !important;
+  /* 파스텔 그린 */
 }
 
 .modern-calendar :deep(.income-event .fc-event-title) {
-  color: #059669 !important;
+  color: #34d399 !important;
 }
 
 .modern-calendar :deep(.fc-more-link) {
@@ -1127,12 +1142,12 @@ export default {
   color: #374151;
 }
 
-/* 수입/지출 총합 이벤트 스타일 */
+/* 수입/지출 총합 이벤트 스타일 - 파스텔 톤 */
 .modern-calendar :deep(.income-total) {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  color: #059669 !important;
+  color: #34d399 !important;
   font-weight: 500 !important;
   margin: 0.5px 0 !important;
   padding: 1px 2px !important;
@@ -1141,14 +1156,14 @@ export default {
 }
 
 .modern-calendar :deep(.income-total .fc-event-title) {
-  color: #059669 !important;
+  color: #34d399 !important;
 }
 
 .modern-calendar :deep(.expense-total) {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  color: #dc2626 !important;
+  color: #f87171 !important;
   font-weight: 500 !important;
   margin: 0.5px 0 !important;
   padding: 1px 2px !important;
@@ -1157,11 +1172,12 @@ export default {
 }
 
 .modern-calendar :deep(.expense-total .fc-event-title) {
-  color: #dc2626 !important;
+  color: #f87171 !important;
 }
 
 /* 화면 크기별 세밀한 조정 */
 @media (max-width: 480px) {
+
   .modern-calendar :deep(.income-total),
   .modern-calendar :deep(.expense-total) {
     font-size: clamp(0.5rem, 2vw, 0.65rem) !important;
@@ -1171,6 +1187,7 @@ export default {
 }
 
 @media (min-width: 481px) and (max-width: 768px) {
+
   .modern-calendar :deep(.income-total),
   .modern-calendar :deep(.expense-total) {
     font-size: clamp(0.6rem, 1.8vw, 0.75rem) !important;
@@ -1178,6 +1195,7 @@ export default {
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
+
   .modern-calendar :deep(.income-total),
   .modern-calendar :deep(.expense-total) {
     font-size: clamp(0.7rem, 1.2vw, 0.85rem) !important;
@@ -1185,6 +1203,7 @@ export default {
 }
 
 @media (min-width: 1025px) {
+
   .modern-calendar :deep(.income-total),
   .modern-calendar :deep(.expense-total) {
     font-size: clamp(0.75rem, 1vw, 0.9rem) !important;
