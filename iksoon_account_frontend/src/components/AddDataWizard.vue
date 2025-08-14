@@ -692,6 +692,9 @@ export default {
 
 .step-number {
     @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all duration-200;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .step-item.active .step-number {
@@ -708,6 +711,12 @@ export default {
 
 .step-label {
     @apply ml-2 text-sm font-medium;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 2px 6px;
+    border-radius: 4px;
+    position: relative;
+    z-index: 1;
 }
 
 .step-item.active .step-label {
@@ -724,6 +733,9 @@ export default {
 
 .step-progress {
     @apply absolute left-10 w-12 h-0.5 bg-gray-300;
+    z-index: -1;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .step-item.completed .step-progress {
@@ -732,6 +744,12 @@ export default {
 
 .step-counter {
     @apply text-center text-sm font-medium text-gray-600 mt-2;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin: 8px auto;
+    display: inline-block;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 /* 레이아웃 */
