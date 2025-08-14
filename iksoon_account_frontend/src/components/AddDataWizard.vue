@@ -393,6 +393,11 @@ export default {
 
         // 키보드 이벤트 핸들러
         const handleKeyboardNavigation = (e) => {
+            // textarea, input 등에서 발생한 이벤트는 무시
+            if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+                return;
+            }
+            
             if (e.altKey) {
                 if (e.key === 'ArrowRight') {
                     e.preventDefault();

@@ -31,34 +31,18 @@
                 </div>
             </div>
 
-            <!-- 빠른 메모 템플릿 -->
-            <div class="quick-memos" v-if="!memoText.trim()">
-                <p class="quick-memos-label">빠른 선택</p>
-                <div class="quick-memos-grid">
-                    <button
-                        v-for="template in memoTemplates"
-                        :key="template"
-                        @click="selectMemoTemplate(template)"
-                        class="quick-memo-btn"
-                    >
-                        <MessageSquare class="w-4 h-4 mr-2" />
-                        {{ template }}
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 </template>
 
 <script>
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { FileText, MessageSquare } from 'lucide-vue-next';
+import { ref, watch, nextTick, onMounted } from 'vue';
+import { FileText } from 'lucide-vue-next';
 
 export default {
     name: 'MemoStep',
     components: {
-        FileText,
-        MessageSquare
+        FileText
     },
     props: {
         modelValue: {
@@ -75,28 +59,6 @@ export default {
         const memoInputRef = ref(null);
         const memoText = ref('');
 
-        // 메모 템플릿 (거래 유형에 따라 다름)
-        const memoTemplates = computed(() => {
-            if (props.modelValue.type === 'out') {
-                return [
-                    '회사 점심',
-                    '가족 외식',
-                    '업무 관련',
-                    '생필품 구매',
-                    '교통비',
-                    '의료비'
-                ];
-            } else {
-                return [
-                    '월급',
-                    '보너스',
-                    '용돈',
-                    '부업 수입',
-                    '이자 수입',
-                    '기타 수입'
-                ];
-            }
-        });
 
         // 이벤트 핸들러들
         const handleMemoInput = (value) => {
@@ -107,6 +69,7 @@ export default {
         const handleKeydown = (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
+                e.stopPropagation();
                 emit('next');
             }
         };
@@ -115,10 +78,6 @@ export default {
             // 블러 시에는 자동 진행하지 않음
         };
 
-        const selectMemoTemplate = (template) => {
-            memoText.value = template;
-            updateModelValue(template);
-        };
 
         const updateModelValue = (value) => {
             const updated = { ...props.modelValue, memo: value };
@@ -145,11 +104,9 @@ export default {
         return {
             memoInputRef,
             memoText,
-            memoTemplates,
             handleMemoInput,
             handleKeydown,
-            handleBlur,
-            selectMemoTemplate
+            handleBlur
         };
     }
 }
@@ -205,29 +162,6 @@ export default {
     @apply flex items-center;
 }
 
-.quick-memos {
-    @apply text-center;
-}
-
-.quick-memos-label {
-    @apply text-sm text-gray-600 mb-3;
-}
-
-.quick-memos-grid {
-    @apply grid grid-cols-2 gap-2;
-}
-
-.quick-memo-btn {
-    @apply flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg transition-colors duration-200;
-}
-
-.quick-memo-btn:hover {
-    @apply bg-gray-50 border-gray-400;
-}
-
-.quick-memo-btn:active {
-    @apply bg-gray-100;
-}
 
 /* 모바일 최적화 */
 @media (max-width: 768px) {
@@ -237,14 +171,6 @@ export default {
         min-height: 100px;
     }
     
-    .quick-memos-grid {
-        @apply grid-cols-1 gap-3;
-    }
-    
-    .quick-memo-btn {
-        @apply px-4 py-3 text-base justify-start;
-        min-height: 44px; /* iOS 권장 터치 영역 */
-    }
 }
 
 /* 접근성 */
@@ -252,14 +178,8 @@ export default {
     @apply ring-2 ring-blue-500 ring-offset-2;
 }
 
-.quick-memo-btn:focus {
-    @apply outline-none ring-2 ring-blue-500 ring-offset-2;
-}
 
 /* 애니메이션 */
-.quick-memos {
-    animation: fadeInUp 0.3s ease-out;
-}
 
 .memo-hints {
     animation: fadeInUp 0.3s ease-out 0.1s both;
