@@ -117,6 +117,94 @@ func (db *DB) GetInAccountsForMonth(year, month string) ([]models.InAccount, err
 	return accounts, nil
 }
 
+// GetInAccountsByDateRange 기간별 수입 데이터 조회
+func (db *DB) GetInAccountsByDateRange(startDate, endDate string) ([]models.InAccount, error) {
+	query := `
+    SELECT ia.uuid, ia.date, ia.user, ia.money, ia.category_id, ia.keyword_id, ia.deposit_path_id, ia.memo, ia.created_at, ia.updated_at,
+           c.name as category_name,
+           COALESCE(k.name, '') as keyword_name,
+           dp.name as deposit_path_name
+    FROM in_account_data ia
+    LEFT JOIN categories c ON ia.category_id = c.id
+    LEFT JOIN keywords k ON ia.keyword_id = k.id
+    LEFT JOIN deposit_paths dp ON ia.deposit_path_id = dp.id
+    WHERE DATE(ia.date) >= ? AND DATE(ia.date) <= ?
+    ORDER BY ia.date DESC`
+
+	rows, err := db.Conn.Query(query, startDate, endDate)
+	if err != nil {
+		utils.LogError("기간별 수입 데이터 조회", err)
+		return nil, fmt.Errorf("기간별 수입 데이터 조회 오류: %v", err)
+	}
+	defer rows.Close()
+
+	var accounts []models.InAccount
+	for rows.Next() {
+		var account models.InAccount
+		var keywordID *int
+
+		err := rows.Scan(
+			&account.UUID, &account.Date, &account.User, &account.Money, &account.CategoryID,
+			&keywordID, &account.DepositPathID, &account.Memo, &account.CreatedAt, &account.UpdatedAt,
+			&account.CategoryName, &account.KeywordName, &account.DepositPathName,
+		)
+		if err != nil {
+			utils.LogError("기간별 수입 데이터 스캔", err)
+			continue
+		}
+
+		account.KeywordID = keywordID
+		accounts = append(accounts, account)
+	}
+
+	return accounts, nil
+}
+
+// SearchInAccountsByKeyword 키워드로 수입 데이터 검색
+func (db *DB) SearchInAccountsByKeyword(keyword, startDate, endDate string) ([]models.InAccount, error) {
+	query := `
+    SELECT ia.uuid, ia.date, ia.user, ia.money, ia.category_id, ia.keyword_id, ia.deposit_path_id, ia.memo, ia.created_at, ia.updated_at,
+           c.name as category_name,
+           COALESCE(k.name, '') as keyword_name,
+           dp.name as deposit_path_name
+    FROM in_account_data ia
+    LEFT JOIN categories c ON ia.category_id = c.id
+    LEFT JOIN keywords k ON ia.keyword_id = k.id
+    LEFT JOIN deposit_paths dp ON ia.deposit_path_id = dp.id
+    WHERE DATE(ia.date) >= ? AND DATE(ia.date) <= ?
+    AND (k.name LIKE ? OR ia.memo LIKE ?)
+    ORDER BY ia.date DESC`
+
+	keywordPattern := "%" + keyword + "%"
+	rows, err := db.Conn.Query(query, startDate, endDate, keywordPattern, keywordPattern)
+	if err != nil {
+		utils.LogError("키워드 수입 데이터 검색", err)
+		return nil, fmt.Errorf("키워드 수입 데이터 검색 오류: %v", err)
+	}
+	defer rows.Close()
+
+	var accounts []models.InAccount
+	for rows.Next() {
+		var account models.InAccount
+		var keywordID *int
+
+		err := rows.Scan(
+			&account.UUID, &account.Date, &account.User, &account.Money, &account.CategoryID,
+			&keywordID, &account.DepositPathID, &account.Memo, &account.CreatedAt, &account.UpdatedAt,
+			&account.CategoryName, &account.KeywordName, &account.DepositPathName,
+		)
+		if err != nil {
+			utils.LogError("키워드 수입 데이터 스캔", err)
+			continue
+		}
+
+		account.KeywordID = keywordID
+		accounts = append(accounts, account)
+	}
+
+	return accounts, nil
+}
+
 // UpdateInAccount 수입 데이터 업데이트
 func (db *DB) UpdateInAccount(uuidStr, date, user string, money, categoryID int, keywordID *int, depositPathID int, memo string) error {
 	parsedDate, err := utils.ParseDateTimeKST(date)

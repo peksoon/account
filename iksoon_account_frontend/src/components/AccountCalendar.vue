@@ -21,38 +21,45 @@
           <div class="flex flex-col space-y-3">
             <!-- 달력 모드일 때만 표시 -->
             <template v-if="viewMode === 'calendar'">
-              <!-- 첫 번째 줄: 네비게이션 버튼들 (모바일에서 가로 배치) -->
-              <div class="flex flex-wrap gap-2 justify-center md:justify-end">
-                <el-button @click="goToToday" type="primary" :icon="Calendar" :size="isMobile ? 'small' : 'large'"
-                  :class="isMobile ? 'text-xs px-3 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
-                  {{ isMobile ? '오늘' : '오늘' }}
-                </el-button>
-                <el-button-group :class="isMobile ? 'flex-shrink-0' : ''">
-                  <el-button @click="goToPrevMonth" :size="isMobile ? 'small' : 'large'"
-                    :class="isMobile ? 'text-xs px-2 py-1 min-w-0' : ''">
-                    {{ isMobile ? '←' : '← 이전' }}
+              <!-- 데스크톱: 2줄 배치, 모바일: 3줄 배치 -->
+              <div class="space-y-2">
+                <!-- 첫 번째 줄: 네비게이션 및 데이터 추가 -->
+                <div class="flex flex-wrap gap-2 justify-center md:justify-end">
+                  <el-button @click="goToToday" type="primary" :icon="Calendar" :size="isMobile ? 'small' : 'default'"
+                    class="flex-shrink-0">
+                    {{ isMobile ? '오늘' : '오늘' }}
                   </el-button>
-                  <el-button @click="goToNextMonth" :size="isMobile ? 'small' : 'large'"
-                    :class="isMobile ? 'text-xs px-2 py-1 min-w-0' : ''">
-                    {{ isMobile ? '→' : '다음 →' }}
+                  <el-button-group>
+                    <el-button @click="goToPrevMonth" :size="isMobile ? 'small' : 'default'">
+                      {{ isMobile ? '←' : '← 이전' }}
+                    </el-button>
+                    <el-button @click="goToNextMonth" :size="isMobile ? 'small' : 'default'">
+                      {{ isMobile ? '→' : '다음 →' }}
+                    </el-button>
+                  </el-button-group>
+                  <el-button @click="openAddPopup" type="success" :size="isMobile ? 'small' : 'default'"
+                    class="flex-shrink-0">
+                    {{ isMobile ? '+' : '+ 추가' }}
                   </el-button>
-                </el-button-group>
-                <el-button @click="openAddPopup" type="success" :size="isMobile ? 'small' : 'large'"
-                  :class="isMobile ? 'text-xs px-3 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
-                  {{ isMobile ? '+' : '+ 추가' }}
-                </el-button>
-                <el-button @click="openStatistics" type="info" :icon="BarChart" :size="isMobile ? 'small' : 'large'"
-                  :class="isMobile ? 'text-xs px-2 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
-                  {{ isMobile ? '📊' : '📊 통계' }}
-                </el-button>
-                <el-button @click="openKeywordSearch" type="primary" :icon="Search" :size="isMobile ? 'small' : 'large'"
-                  :class="isMobile ? 'text-xs px-2 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
-                  {{ isMobile ? '🔍' : '🔍 키워드 검색' }}
-                </el-button>
-                <el-button @click="openBudgetManager" type="warning" :size="isMobile ? 'small' : 'large'"
-                  :class="isMobile ? 'text-xs px-2 py-1 min-w-0 flex-shrink-0' : 'w-auto'">
-                  {{ isMobile ? '💰' : '💰 기준치 관리' }}
-                </el-button>
+                </div>
+
+                <!-- 두 번째 줄: 분석 및 관리 기능 -->
+                <div class="flex flex-wrap gap-2 justify-center md:justify-end">
+                  <el-button @click="openStatistics" type="info" :size="isMobile ? 'small' : 'default'"
+                    class="flex-shrink-0">
+                    <BarChart :class="isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'" />
+                    {{ isMobile ? '통계' : '📊 통계' }}
+                  </el-button>
+                  <el-button @click="openKeywordSearch" type="primary" :size="isMobile ? 'small' : 'default'"
+                    class="flex-shrink-0">
+                    <Search :class="isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'" />
+                    {{ isMobile ? '검색' : '🔍 키워드 검색' }}
+                  </el-button>
+                  <el-button @click="openBudgetManager" type="warning" :size="isMobile ? 'small' : 'default'"
+                    class="flex-shrink-0">
+                    {{ isMobile ? '💰 기준치' : '💰 기준치 관리' }}
+                  </el-button>
+                </div>
               </div>
             </template>
             <template v-else>
@@ -166,7 +173,7 @@
                   </div>
                   <div>
                     <p class="font-semibold text-gray-800">{{ getCategoryName(data.category_id) || data.category || '-'
-                    }}
+                      }}
                     </p>
                     <p v-if="data.keyword_name || data.keyword" class="text-sm text-gray-600">🏷️ {{ data.keyword_name
                       ||
@@ -232,6 +239,16 @@
 
 
 
+    <!-- 하단 도구 영역 -->
+    <div class="container-responsive pb-8" v-if="viewMode === 'calendar'">
+      <div class="flex justify-center">
+        <el-button @click="openExportData" type="success" size="small" class="text-xs opacity-70 hover:opacity-100">
+          <Download class="w-3 h-3 mr-1" />
+          데이터 내보내기
+        </el-button>
+      </div>
+    </div>
+
     <!-- 기준치 알림 팝업 -->
     <BudgetAlertPopup :is-visible="showBudgetAlert" :budget-usage="budgetAlertData.budgetUsage"
       :expense-amount="budgetAlertData.expenseAmount" :expense-date="budgetAlertData.expenseDate"
@@ -272,7 +289,8 @@ import {
   TrendingDown,
   Wallet,
   DollarSign,
-  Search
+  Search,
+  Download
 } from 'lucide-vue-next';
 
 
@@ -293,7 +311,8 @@ export default {
     TrendingUp,
     TrendingDown,
     Wallet,
-    DollarSign
+    DollarSign,
+    Download
   },
   setup() {
     const router = useRouter();
@@ -737,6 +756,10 @@ export default {
       router.push('/keyword-search');
     };
 
+    const openExportData = () => {
+      router.push('/export-data');
+    };
+
     const goBackToCalendar = () => {
       viewMode.value = 'calendar';
     };
@@ -890,6 +913,7 @@ export default {
       openStatistics,
       closeStatistics,
       openKeywordSearch,
+      openExportData,
       goBackToCalendar,
       showStatistics,
       viewMode,

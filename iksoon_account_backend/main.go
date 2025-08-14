@@ -81,18 +81,18 @@ func main() {
 	// RESTful API 라우트 설정 - 각 엔드포인트에 미들웨어 적용
 
 	// 사용자 관리 API - 사용자 CRUD 및 사용 여부 확인
-	http.Handle("/users", enableCorsAndLogging(http.HandlerFunc(userHandler.GetUsersHandler)))                       // GET: 사용자 목록 조회
-	http.Handle("/users/create", enableCorsAndLogging(http.HandlerFunc(userHandler.CreateUserHandler)))               // POST: 신규 사용자 생성
-	http.Handle("/users/update", enableCorsAndLogging(http.HandlerFunc(userHandler.UpdateUserHandler)))               // PUT: 사용자 정보 수정
-	http.Handle("/users/delete", enableCorsAndLogging(http.HandlerFunc(userHandler.DeleteUserHandler)))               // DELETE: 사용자 삭제 (참조 데이터 있으면 실패)
-	http.Handle("/users/force-delete", enableCorsAndLogging(http.HandlerFunc(userHandler.ForceDeleteUserHandler)))    // DELETE: 사용자 강제 삭제 (참조 데이터 포함)
-	http.Handle("/users/check-usage", enableCorsAndLogging(http.HandlerFunc(userHandler.CheckUserUsageHandler)))      // GET: 사용자 사용 여부 확인
+	http.Handle("/users", enableCorsAndLogging(http.HandlerFunc(userHandler.GetUsersHandler)))                     // GET: 사용자 목록 조회
+	http.Handle("/users/create", enableCorsAndLogging(http.HandlerFunc(userHandler.CreateUserHandler)))            // POST: 신규 사용자 생성
+	http.Handle("/users/update", enableCorsAndLogging(http.HandlerFunc(userHandler.UpdateUserHandler)))            // PUT: 사용자 정보 수정
+	http.Handle("/users/delete", enableCorsAndLogging(http.HandlerFunc(userHandler.DeleteUserHandler)))            // DELETE: 사용자 삭제 (참조 데이터 있으면 실패)
+	http.Handle("/users/force-delete", enableCorsAndLogging(http.HandlerFunc(userHandler.ForceDeleteUserHandler))) // DELETE: 사용자 강제 삭제 (참조 데이터 포함)
+	http.Handle("/users/check-usage", enableCorsAndLogging(http.HandlerFunc(userHandler.CheckUserUsageHandler)))   // GET: 사용자 사용 여부 확인
 
 	// 카테고리 관리 API - 지출/수입 카테고리 CRUD
-	http.Handle("/categories", enableCorsAndLogging(http.HandlerFunc(categoryHandler.GetCategoriesHandler)))             // GET: 카테고리 목록 조회 (type 파라미터로 out/in 필터링)
-	http.Handle("/categories/create", enableCorsAndLogging(http.HandlerFunc(categoryHandler.CreateCategoryHandler)))     // POST: 신규 카테고리 생성
-	http.Handle("/categories/update", enableCorsAndLogging(http.HandlerFunc(categoryHandler.UpdateCategoryHandler)))     // PUT: 카테고리 정보 수정
-	http.Handle("/categories/delete", enableCorsAndLogging(http.HandlerFunc(categoryHandler.DeleteCategoryHandler)))     // DELETE: 카테고리 삭제 (사용 중이면 실패)
+	http.Handle("/categories", enableCorsAndLogging(http.HandlerFunc(categoryHandler.GetCategoriesHandler)))                    // GET: 카테고리 목록 조회 (type 파라미터로 out/in 필터링)
+	http.Handle("/categories/create", enableCorsAndLogging(http.HandlerFunc(categoryHandler.CreateCategoryHandler)))            // POST: 신규 카테고리 생성
+	http.Handle("/categories/update", enableCorsAndLogging(http.HandlerFunc(categoryHandler.UpdateCategoryHandler)))            // PUT: 카테고리 정보 수정
+	http.Handle("/categories/delete", enableCorsAndLogging(http.HandlerFunc(categoryHandler.DeleteCategoryHandler)))            // DELETE: 카테고리 삭제 (사용 중이면 실패)
 	http.Handle("/categories/force-delete", enableCorsAndLogging(http.HandlerFunc(categoryHandler.ForceDeleteCategoryHandler))) // DELETE: 카테고리 강제 삭제
 
 	// 키워드 관리 API
@@ -120,6 +120,8 @@ func main() {
 	http.Handle("/v2/out-account/insert-with-budget", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.InsertOutAccountWithBudgetHandler)))
 	http.Handle("/v2/out-account", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.GetOutAccountByDateHandler)))
 	http.Handle("/v2/month-out-account", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.GetOutAccountByMonthHandler)))
+	http.Handle("/v2/out-accounts", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.GetOutAccountsByDateRangeHandler)))
+	http.Handle("/v2/search-keyword-accounts", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.SearchOutAccountsByKeywordHandler)))
 	http.Handle("/v2/out-account/update", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.UpdateOutAccountHandler)))
 	http.Handle("/v2/out-account/delete", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.DeleteOutAccountHandler)))
 
@@ -127,6 +129,8 @@ func main() {
 	http.Handle("/v2/in-account/insert", enableCorsAndLogging(http.HandlerFunc(inAccountHandler.InsertInAccountHandler)))
 	http.Handle("/v2/in-account", enableCorsAndLogging(http.HandlerFunc(inAccountHandler.GetInAccountByDateHandler)))
 	http.Handle("/v2/month-in-account", enableCorsAndLogging(http.HandlerFunc(inAccountHandler.GetInAccountByMonthHandler)))
+	http.Handle("/v2/in-accounts", enableCorsAndLogging(http.HandlerFunc(inAccountHandler.GetInAccountsByDateRangeHandler)))
+	http.Handle("/v2/in-search-keyword-accounts", enableCorsAndLogging(http.HandlerFunc(inAccountHandler.SearchInAccountsByKeywordHandler)))
 	http.Handle("/v2/in-account/update", enableCorsAndLogging(http.HandlerFunc(inAccountHandler.UpdateInAccountHandler)))
 	http.Handle("/v2/in-account/delete", enableCorsAndLogging(http.HandlerFunc(inAccountHandler.DeleteInAccountHandler)))
 

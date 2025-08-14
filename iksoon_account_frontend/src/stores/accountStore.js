@@ -117,20 +117,18 @@ export const useAccountStore = defineStore('account', {
             params: {
               keyword,
               start_date: startDate,
-              end_date: endDate,
-              type: 'out'
+              end_date: endDate
             }
           }
         );
         
         // Search in income accounts
         const inRes = await axios.get(
-          `${BACKEND_API_BASE_URL}/v2/search-keyword-accounts`, {
+          `${BACKEND_API_BASE_URL}/v2/in-search-keyword-accounts`, {
             params: {
               keyword,
               start_date: startDate,
-              end_date: endDate,
-              type: 'in'
+              end_date: endDate
             }
           }
         );

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AccountCalendar from '../components/AccountCalendar.vue'
 import AddDataWizard from '../components/AddDataWizard.vue'
 import KeywordSearchPage from '../components/KeywordSearchPage.vue'
+import ExportDataPage from '../components/ExportDataPage.vue'
 
 const routes = [
   {
@@ -22,6 +23,11 @@ const routes = [
     path: '/keyword-search',
     name: 'KeywordSearch',
     component: KeywordSearchPage
+  },
+  {
+    path: '/export-data',
+    name: 'ExportData',
+    component: ExportDataPage
   }
 ]
 

@@ -7,7 +7,8 @@
                     <button @click="goBack" class="mr-4 p-2 hover:bg-gray-100 rounded-lg transition-colors">
                         <ArrowLeft class="w-5 h-5 text-gray-600" />
                     </button>
-                    <div class="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center mr-3">
+                    <div
+                        class="w-10 h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center mr-3">
                         <DollarSign class="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -22,7 +23,7 @@
             <div class="p-6 border-b border-gray-100">
                 <div class="grid grid-cols-2 gap-3">
                     <div @click="formData.type = 'out'"
-                        class="p-3 border-2 rounded-xl cursor-pointer transition-all duration-200" 
+                        class="p-3 border-2 rounded-xl cursor-pointer transition-all duration-200"
                         :class="formData.type === 'out' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'">
                         <div class="flex items-center justify-center">
                             <div class="w-6 h-6 bg-red-500 rounded-lg flex items-center justify-center mr-2">
@@ -32,7 +33,7 @@
                         </div>
                     </div>
                     <div @click="formData.type = 'in'"
-                        class="p-3 border-2 rounded-xl cursor-pointer transition-all duration-200" 
+                        class="p-3 border-2 rounded-xl cursor-pointer transition-all duration-200"
                         :class="formData.type === 'in' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'">
                         <div class="flex items-center justify-center">
                             <div class="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center mr-2">
@@ -47,17 +48,11 @@
             <!-- 스테퍼 -->
             <div class="stepper-container">
                 <div class="stepper" :class="{ 'mobile-stepper': isMobile }">
-                    <div 
-                        v-for="(step, index) in steps" 
-                        :key="step.id"
-                        class="step-item"
-                        :class="{ 
-                            'active': currentStep === index,
-                            'completed': index < currentStep,
-                            'clickable': canJumpToStep(index)
-                        }"
-                        @click="jumpToStep(index)"
-                    >
+                    <div v-for="(step, index) in steps" :key="step.id" class="step-item" :class="{
+                        'active': currentStep === index,
+                        'completed': index < currentStep,
+                        'clickable': canJumpToStep(index)
+                    }" @click="jumpToStep(index)">
                         <div class="step-number">
                             <CheckCircle2 v-if="index < currentStep" class="w-4 h-4" />
                             <span v-else>{{ index + 1 }}</span>
@@ -76,89 +71,51 @@
                 <!-- Desktop 레이아웃 -->
                 <div class="wizard-layout" v-if="!isMobile">
                     <div class="step-content">
-                        <component 
-                            :is="currentStepComponent" 
-                            v-model="formData"
-                            :errors="errors"
-                            @next="handleNext"
-                            @auto-advance="handleAutoAdvance"
-                            @validate="handleValidate"
+                        <component :is="currentStepComponent" v-model="formData" :errors="errors" @next="handleNext"
+                            @auto-advance="handleAutoAdvance" @validate="handleValidate"
                             @open-category-manager="openCategoryManager"
                             @open-payment-method-manager="openPaymentMethodManager"
                             @open-deposit-path-manager="openDepositPathManager"
-                            @open-keyword-manager="openKeywordManager"
-                            @open-user-manager="openUserManager"
-                        />
+                            @open-keyword-manager="openKeywordManager" @open-user-manager="openUserManager" />
                     </div>
                     <div class="summary-panel">
-                        <SummaryPanel 
-                            :data="formData" 
-                            :current-step="currentStep"
-                            @jump-to-step="jumpToStep"
-                        />
+                        <SummaryPanel :data="formData" :current-step="currentStep" @jump-to-step="jumpToStep" />
                     </div>
                 </div>
 
                 <!-- Mobile 레이아웃 -->
                 <div class="mobile-step-content" v-else>
-                    <component 
-                        :is="currentStepComponent" 
-                        v-model="formData"
-                        :errors="errors"
-                        @next="handleNext"
-                        @auto-advance="handleAutoAdvance"
-                        @validate="handleValidate"
+                    <component :is="currentStepComponent" v-model="formData" :errors="errors" @next="handleNext"
+                        @auto-advance="handleAutoAdvance" @validate="handleValidate"
                         @open-category-manager="openCategoryManager"
                         @open-payment-method-manager="openPaymentMethodManager"
-                        @open-deposit-path-manager="openDepositPathManager"
-                        @open-keyword-manager="openKeywordManager"
-                        @open-user-manager="openUserManager"
-                    />
+                        @open-deposit-path-manager="openDepositPathManager" @open-keyword-manager="openKeywordManager"
+                        @open-user-manager="openUserManager" />
                 </div>
             </div>
 
             <!-- 하단 액션 바 -->
             <div class="action-bar" :class="{ 'mobile-action-bar': isMobile }">
                 <div class="flex justify-between items-center">
-                    <el-button 
-                        v-if="currentStep > 0" 
-                        @click="handleBack"
-                        size="large"
-                        class="back-button"
-                    >
+                    <el-button v-if="currentStep > 0" @click="handleBack" size="large" class="back-button">
                         <ArrowLeft class="w-4 h-4 mr-2" />
                         이전
                     </el-button>
                     <div v-else></div>
 
                     <div class="flex space-x-3">
-                        <el-button 
-                            v-if="canSkipCurrentStep"
-                            @click="handleSkip"
-                            size="large"
-                        >
+                        <el-button v-if="canSkipCurrentStep" @click="handleSkip" size="large">
                             건너뛰기
                         </el-button>
-                        
-                        <el-button 
-                            v-if="currentStep < steps.length - 1"
-                            @click="handleNext"
-                            type="primary"
-                            size="large"
-                            :disabled="!canProceed"
-                        >
+
+                        <el-button v-if="currentStep < steps.length - 1" @click="handleNext" type="primary" size="large"
+                            :disabled="!canProceed">
                             다음
                             <ArrowRight class="w-4 h-4 ml-2" />
                         </el-button>
 
-                        <el-button 
-                            v-else
-                            @click="handleSave"
-                            type="primary" 
-                            size="large"
-                            :loading="saving"
-                            :disabled="!isFormValid"
-                        >
+                        <el-button v-else @click="handleSave" type="primary" size="large" :loading="saving"
+                            :disabled="!isFormValid">
                             <Save class="w-4 h-4 mr-2" />
                             저장하기
                         </el-button>
@@ -168,15 +125,10 @@
         </div>
 
         <!-- 기준치 알림 팝업 -->
-        <BudgetAlertPopup 
-            :is-visible="showBudgetAlert" 
-            :budget-usage="budgetAlertData.budgetUsage"
-            :expense-amount="budgetAlertData.expenseAmount" 
-            :expense-date="budgetAlertData.expenseDate"
-            :expense-keyword="budgetAlertData.expenseKeyword" 
-            @close="closeBudgetAlert"
-            @open-budget-management="openBudgetManager" 
-        />
+        <BudgetAlertPopup :is-visible="showBudgetAlert" :budget-usage="budgetAlertData.budgetUsage"
+            :expense-amount="budgetAlertData.expenseAmount" :expense-date="budgetAlertData.expenseDate"
+            :expense-keyword="budgetAlertData.expenseKeyword" @close="closeBudgetAlert"
+            @open-budget-management="openBudgetManager" />
     </div>
 </template>
 
@@ -265,7 +217,7 @@ export default {
         const saving = ref(false);
         const errors = ref({});
         const autoAdvanceTimeouts = ref({});
-        
+
         // 기준치 알림 상태
         const showBudgetAlert = ref(false);
         const budgetAlertData = ref({
@@ -284,7 +236,7 @@ export default {
         const initializeFormData = (accountData) => {
             const defaultDate = getTodayKST();
             let dateToUse = defaultDate;
-            
+
             // Route 쿼리에서 날짜 가져오기
             if (route.query.date) {
                 dateToUse = route.query.date;
@@ -333,11 +285,11 @@ export default {
             { id: 'user', label: '사용자', component: 'UserStep', required: true },
             { id: 'category', label: '카테고리', component: 'CategoryStep', required: true },
             { id: 'keyword', label: '키워드', component: 'KeywordStep', required: true },
-            { 
-                id: 'payment', 
-                label: formData.value.type === 'out' ? '결제수단' : '입금경로', 
-                component: 'PaymentMethodStep', 
-                required: true 
+            {
+                id: 'payment',
+                label: formData.value.type === 'out' ? '결제수단' : '입금경로',
+                component: 'PaymentMethodStep',
+                required: true
             },
             { id: 'memo', label: '메모', component: 'MemoStep', required: false },
             { id: 'date', label: '날짜', component: 'DateStep', required: true },
@@ -350,7 +302,7 @@ export default {
         // 다음 단계로 진행 가능 여부
         const canProceed = computed(() => {
             if (!currentStepData.value.required) return true;
-            
+
             switch (currentStepData.value.id) {
                 case 'amount':
                     return formData.value.money && parseFloat(formData.value.money) > 0;
@@ -361,8 +313,8 @@ export default {
                 case 'keyword':
                     return formData.value.keyword_name;
                 case 'payment':
-                    return formData.value.type === 'out' 
-                        ? formData.value.payment_method_id 
+                    return formData.value.type === 'out'
+                        ? formData.value.payment_method_id
                         : formData.value.deposit_path;
                 case 'date':
                     return formData.value.date;
@@ -397,7 +349,7 @@ export default {
             if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
                 return;
             }
-            
+
             if (e.altKey) {
                 if (e.key === 'ArrowRight') {
                     e.preventDefault();
@@ -422,9 +374,9 @@ export default {
         // 이벤트 핸들러들
         const handleNext = async () => {
             if (!canProceed.value) return;
-            
+
             clearAutoAdvanceTimeout();
-            
+
             if (currentStep.value < steps.value.length - 1) {
                 currentStep.value++;
                 announceStepChange();
@@ -449,7 +401,7 @@ export default {
 
         const handleAutoAdvance = (delay = 600) => {
             if (!canProceed.value) return;
-            
+
             clearAutoAdvanceTimeout();
             autoAdvanceTimeouts.value[currentStep.value] = setTimeout(() => {
                 handleNext();
@@ -488,7 +440,7 @@ export default {
 
                 if (formData.value.type === 'out') {
                     const response = await budgetStore.createOutAccountWithBudget(accountData);
-                    
+
                     if (response.budget_usage) {
                         // 기준치 알림 표시
                         budgetAlertData.value = {
@@ -501,17 +453,17 @@ export default {
                     } else {
                         goBack();
                     }
-                    
+
                     emit('budget-save-success');
                     ElMessage.success('지출이 성공적으로 기록되었습니다.');
                 } else {
                     // 수입 데이터를 accountStore를 통해 저장
                     await accountStore.saveAccount(accountData);
-                    
+
                     if (formData.value.keyword_name && formData.value.category_id) {
                         await keywordStore.useKeyword(formData.value.category_id, formData.value.keyword_name);
                     }
-                    
+
                     emit('save', accountData);
                     goBack();
                     ElMessage.success('수입이 성공적으로 기록되었습니다.');
@@ -526,7 +478,7 @@ export default {
 
         const handleClose = async () => {
             const hasUnsavedChanges = formData.value.money || formData.value.user || formData.value.memo;
-            
+
             if (hasUnsavedChanges) {
                 try {
                     await ElMessageBox.confirm(
@@ -542,7 +494,7 @@ export default {
                     return;
                 }
             }
-            
+
             goBack();
         };
 
@@ -651,7 +603,7 @@ export default {
             saving,
             errors,
             formData,
-            
+
             // Computed
             isMobile,
             steps,
@@ -661,7 +613,7 @@ export default {
             canSkipCurrentStep,
             canJumpToStep,
             isFormValid,
-            
+
             // Methods
             goBack,
             handleNext,
@@ -678,13 +630,13 @@ export default {
             openDepositPathManager,
             openUserManager,
             openKeywordManager,
-            
+
             // Budget Alert
             showBudgetAlert,
             budgetAlertData,
             closeBudgetAlert,
             openBudgetManager,
-            
+
             // Icons
             DollarSign,
             TrendingUp,
@@ -826,8 +778,13 @@ export default {
 
 /* 애니메이션 */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideIn {
@@ -835,6 +792,7 @@ export default {
         opacity: 0;
         transform: translateY(-20px) scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -846,36 +804,36 @@ export default {
     .step-item:not(.active) {
         @apply opacity-50;
     }
-    
+
     .step-label {
         @apply hidden;
     }
-    
+
     .step-progress {
         @apply hidden;
     }
-    
+
     .stepper {
         @apply justify-start;
     }
-    
+
     .step-header h2 {
         @apply text-lg;
     }
-    
+
     .step-header p {
         @apply text-sm;
     }
-    
+
     .modal-content {
         @apply text-sm;
     }
-    
+
     .action-bar .el-button {
         @apply text-sm px-4 py-2;
         min-height: 44px;
     }
-    
+
     /* 스테퍼 카운터 텍스트 크기 조정 */
     .step-counter {
         @apply text-sm;

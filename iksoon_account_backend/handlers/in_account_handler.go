@@ -19,6 +19,8 @@ type InAccountRepository interface {
 	InsertInAccount(date, user string, money, categoryID int, keywordID *int, depositPathID int, memo string) error
 	GetInAccountsByDate(date string) ([]models.InAccount, error)
 	GetInAccountsForMonth(year, month string) ([]models.InAccount, error)
+	GetInAccountsByDateRange(startDate, endDate string) ([]models.InAccount, error)
+	SearchInAccountsByKeyword(keyword, startDate, endDate string) ([]models.InAccount, error)
 	UpdateInAccount(uuid, date, user string, money, categoryID int, keywordID *int, depositPathID int, memo string) error
 	DeleteInAccount(uuid string) error
 	GetInAccountByUUID(uuid string) (*models.InAccount, error)
@@ -154,6 +156,60 @@ func (h *InAccountHandler) GetInAccountByMonthHandler(w http.ResponseWriter, r *
 	inAccounts, err := h.DB.GetInAccountsForMonth(year, month)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "수입 데이터 조회 중 오류 발생")
+		return
+	}
+
+	utils.SendSuccessResponse(w, inAccounts)
+}
+
+// GetInAccountsByDateRangeHandler 기간별 수입 데이터 조회 핸들러
+func (h *InAccountHandler) GetInAccountsByDateRangeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.SendErrorResponse(w, http.StatusMethodNotAllowed, models.ErrCodeInvalidInput, "지원되지 않는 메소드입니다.")
+		return
+	}
+
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+
+	if startDate == "" || endDate == "" {
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "시작일과 종료일이 필요합니다.")
+		return
+	}
+
+	inAccounts, err := h.DB.GetInAccountsByDateRange(startDate, endDate)
+	if err != nil {
+		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "수입 데이터 조회 중 오류 발생")
+		return
+	}
+
+	utils.SendSuccessResponse(w, inAccounts)
+}
+
+// SearchInAccountsByKeywordHandler 키워드로 수입 데이터 검색 핸들러
+func (h *InAccountHandler) SearchInAccountsByKeywordHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.SendErrorResponse(w, http.StatusMethodNotAllowed, models.ErrCodeInvalidInput, "지원되지 않는 메소드입니다.")
+		return
+	}
+
+	keyword := r.URL.Query().Get("keyword")
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+
+	if keyword == "" {
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "키워드가 필요합니다.")
+		return
+	}
+
+	if startDate == "" || endDate == "" {
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "시작일과 종료일이 필요합니다.")
+		return
+	}
+
+	inAccounts, err := h.DB.SearchInAccountsByKeyword(keyword, startDate, endDate)
+	if err != nil {
+		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "키워드 검색 중 오류 발생")
 		return
 	}
 
