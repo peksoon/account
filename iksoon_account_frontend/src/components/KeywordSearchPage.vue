@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-content">
       <!-- Header -->
-      <div class="flex items-center p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
         <div class="flex items-center">
           <div
             class="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
@@ -13,6 +13,10 @@
             <p class="text-sm text-gray-500">키워드 검색 또는 기간별 전체 내역 조회</p>
           </div>
         </div>
+        <el-button @click="goHome" type="info" size="large">
+          <Calendar class="w-4 h-4 mr-2" />
+          홈으로
+        </el-button>
       </div>
 
       <!-- Search Form -->
@@ -197,6 +201,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Search, Calendar, FileText, Download } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
 import { useAccountStore } from '../stores/accountStore';
 import { useCategoryStore } from '../stores/categoryStore';
 import DetailPopup from './DetailPopup.vue';
@@ -212,6 +217,7 @@ export default {
     DetailPopup
   },
   setup() {
+    const router = useRouter();
     const accountStore = useAccountStore();
     const categoryStore = useCategoryStore();
 
@@ -459,7 +465,10 @@ export default {
       handleSearch();
     };
 
-
+    // Go to home
+    const goHome = () => {
+      router.push('/');
+    };
 
     // Initialize
     onMounted(async () => {
@@ -502,6 +511,7 @@ export default {
       exportResults,
       queryKeywordSuggestions,
       handleKeywordSelect,
+      goHome,
 
       // Icons
       Search,

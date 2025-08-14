@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AccountCalendar from '../components/AccountCalendar.vue'
 import AddDataWizard from '../components/AddDataWizard.vue'
+import KeywordSearchPage from '../components/KeywordSearchPage.vue'
 
 const routes = [
   {
@@ -16,6 +17,11 @@ const routes = [
       newAccount: route.query.data ? JSON.parse(route.query.data) : {},
       selectedDate: route.query.date || null
     })
+  },
+  {
+    path: '/keyword-search',
+    name: 'KeywordSearch',
+    component: KeywordSearchPage
   }
 ]
 

@@ -230,8 +230,7 @@
     <!-- 키워드 관리 모달 -->
     <KeywordManager v-if="showKeywordManager" :category-id="keywordManagerCategoryId" @close="closeKeywordManager" />
 
-    <!-- 키워드 검색 모달 -->
-    <KeywordSearchModal v-if="showKeywordSearchModal" @close="closeKeywordSearch" />
+
 
     <!-- 기준치 알림 팝업 -->
     <BudgetAlertPopup :is-visible="showBudgetAlert" :budget-usage="budgetAlertData.budgetUsage"
@@ -265,7 +264,7 @@ import KeywordManager from './KeywordManager.vue';
 import StatisticsDashboard from './StatisticsDashboard.vue';
 import BudgetAlertPopup from './BudgetAlertPopup.vue';
 import BudgetManager from './BudgetManager.vue';
-import KeywordSearchModal from './KeywordSearchModal.vue';
+
 import {
   Calendar,
   BarChart,
@@ -289,7 +288,7 @@ export default {
     StatisticsDashboard,
     BudgetAlertPopup,
     BudgetManager,
-    KeywordSearchModal,
+
     Calendar,
     TrendingUp,
     TrendingDown,
@@ -317,7 +316,7 @@ export default {
     const showStatistics = ref(false);
     const showKeywordManager = ref(false);
     const keywordManagerCategoryId = ref(null);
-    const showKeywordSearchModal = ref(false);
+
 
     // 기준치 관련 상태
     const showBudgetAlert = ref(false);
@@ -735,11 +734,7 @@ export default {
     };
 
     const openKeywordSearch = () => {
-      showKeywordSearchModal.value = true;
-    };
-
-    const closeKeywordSearch = () => {
-      showKeywordSearchModal.value = false;
+      router.push('/keyword-search');
     };
 
     const goBackToCalendar = () => {
@@ -877,7 +872,7 @@ export default {
       showCategoryManager,
       showPaymentMethodManager,
       showDepositPathManager,
-      showKeywordSearchModal,
+
 
       // 관리 모달 메서드들
       openCategoryManager,
@@ -895,7 +890,6 @@ export default {
       openStatistics,
       closeStatistics,
       openKeywordSearch,
-      closeKeywordSearch,
       goBackToCalendar,
       showStatistics,
       viewMode,
