@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -34,6 +35,11 @@ func (h *StatisticsHandler) GetStatisticsHandler(w http.ResponseWriter, r *http.
 	startDate := r.URL.Query().Get("start_date")
 	endDate := r.URL.Query().Get("end_date")
 
+	// 새로운 개별 기간 선택 파라미터
+	yearStr := r.URL.Query().Get("year")   // 선택한 년도
+	monthStr := r.URL.Query().Get("month") // 선택한 월 (1-12)
+	weekStr := r.URL.Query().Get("week")   // 선택한 주차 (1-53)
+
 	// 기본값 설정
 	if accountType == "" {
 		accountType = "out"
@@ -43,7 +49,7 @@ func (h *StatisticsHandler) GetStatisticsHandler(w http.ResponseWriter, r *http.
 	}
 
 	// 날짜 범위 계산
-	calculatedStartDate, calculatedEndDate, period := h.calculateDateRange(statisticsType, startDate, endDate)
+	calculatedStartDate, calculatedEndDate, period := h.calculateDateRange(statisticsType, startDate, endDate, yearStr, monthStr, weekStr)
 
 	// 카테고리별 통계 조회
 	categories, err := h.DB.GetCategoryStatistics(calculatedStartDate, calculatedEndDate, accountType)
@@ -114,6 +120,11 @@ func (h *StatisticsHandler) GetCategoryKeywordStatisticsHandler(w http.ResponseW
 	startDate := r.URL.Query().Get("start_date")
 	endDate := r.URL.Query().Get("end_date")
 
+	// 새로운 개별 기간 선택 파라미터
+	yearStr := r.URL.Query().Get("year")   // 선택한 년도
+	monthStr := r.URL.Query().Get("month") // 선택한 월 (1-12)
+	weekStr := r.URL.Query().Get("week")   // 선택한 주차 (1-53)
+
 	if categoryIDStr == "" {
 		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "카테고리 ID가 필요합니다.")
 		return
@@ -134,7 +145,7 @@ func (h *StatisticsHandler) GetCategoryKeywordStatisticsHandler(w http.ResponseW
 	}
 
 	// 날짜 범위 계산
-	calculatedStartDate, calculatedEndDate, period := h.calculateDateRange(statisticsType, startDate, endDate)
+	calculatedStartDate, calculatedEndDate, period := h.calculateDateRange(statisticsType, startDate, endDate, yearStr, monthStr, weekStr)
 
 	// 키워드별 통계 조회
 	keywords, err := h.DB.GetKeywordStatistics(categoryID, calculatedStartDate, calculatedEndDate, accountType)
@@ -181,33 +192,86 @@ func (h *StatisticsHandler) GetCategoryKeywordStatisticsHandler(w http.ResponseW
 }
 
 // 날짜 범위 계산 헬퍼 함수
-func (h *StatisticsHandler) calculateDateRange(statisticsType, startDate, endDate string) (string, string, string) {
+func (h *StatisticsHandler) calculateDateRange(statisticsType, startDate, endDate, yearStr, monthStr, weekStr string) (string, string, string) {
 	now := time.Now()
 	var start, end time.Time
 	var period string
 
 	switch statisticsType {
 	case "week":
-		// 이번 주 (월요일부터 일요일까지)
-		weekday := int(now.Weekday())
-		if weekday == 0 {
-			weekday = 7 // 일요일을 7로 변경
+		if yearStr != "" && weekStr != "" {
+			// 특정 년도와 주차 선택
+			year, yearErr := strconv.Atoi(yearStr)
+			week, weekErr := strconv.Atoi(weekStr)
+
+			if yearErr == nil && weekErr == nil && week >= 1 && week <= 53 {
+				// 해당 년도 1월 1일부터 주차 계산
+				jan1 := time.Date(year, 1, 1, 0, 0, 0, 0, now.Location())
+				// 1월 1일이 무슨 요일인지 확인
+				jan1Weekday := int(jan1.Weekday())
+				if jan1Weekday == 0 {
+					jan1Weekday = 7 // 일요일을 7로 변경
+				}
+
+				// 첫 번째 월요일을 찾기
+				daysToFirstMonday := 8 - jan1Weekday
+				if jan1Weekday == 1 {
+					daysToFirstMonday = 0 // 1월 1일이 월요일인 경우
+				}
+
+				firstMonday := jan1.AddDate(0, 0, daysToFirstMonday)
+				start = firstMonday.AddDate(0, 0, (week-1)*7)
+				end = start.AddDate(0, 0, 6)
+
+				period = fmt.Sprintf("%d년 %d주차 (%s ~ %s)",
+					year, week,
+					start.Format("1월 2일"),
+					end.Format("1월 2일"))
+			} else {
+				// 잘못된 파라미터인 경우 현재 주로 대체
+				h.setCurrentWeek(&start, &end, &period, now)
+			}
+		} else {
+			// 파라미터가 없는 경우 현재 주
+			h.setCurrentWeek(&start, &end, &period, now)
 		}
-		start = now.AddDate(0, 0, -(weekday - 1))
-		end = start.AddDate(0, 0, 6)
-		period = start.Format("2006년 1월 2일") + " ~ " + end.Format("1월 2일")
 
 	case "month":
-		// 이번 달
-		start = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-		end = start.AddDate(0, 1, -1)
-		period = now.Format("2006년 1월")
+		if yearStr != "" && monthStr != "" {
+			// 특정 년도와 월 선택
+			year, yearErr := strconv.Atoi(yearStr)
+			month, monthErr := strconv.Atoi(monthStr)
+
+			if yearErr == nil && monthErr == nil && month >= 1 && month <= 12 {
+				start = time.Date(year, time.Month(month), 1, 0, 0, 0, 0, now.Location())
+				end = start.AddDate(0, 1, -1)
+				period = fmt.Sprintf("%d년 %d월", year, month)
+			} else {
+				// 잘못된 파라미터인 경우 현재 월로 대체
+				h.setCurrentMonth(&start, &end, &period, now)
+			}
+		} else {
+			// 파라미터가 없는 경우 현재 월
+			h.setCurrentMonth(&start, &end, &period, now)
+		}
 
 	case "year":
-		// 올해
-		start = time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
-		end = time.Date(now.Year(), 12, 31, 23, 59, 59, 0, now.Location())
-		period = now.Format("2006년")
+		if yearStr != "" {
+			// 특정 년도 선택
+			year, yearErr := strconv.Atoi(yearStr)
+
+			if yearErr == nil && year >= 2020 && year <= now.Year()+5 {
+				start = time.Date(year, 1, 1, 0, 0, 0, 0, now.Location())
+				end = time.Date(year, 12, 31, 23, 59, 59, 0, now.Location())
+				period = fmt.Sprintf("%d년", year)
+			} else {
+				// 잘못된 파라미터인 경우 현재 년도로 대체
+				h.setCurrentYear(&start, &end, &period, now)
+			}
+		} else {
+			// 파라미터가 없는 경우 현재 년도
+			h.setCurrentYear(&start, &end, &period, now)
+		}
 
 	case "custom":
 		// 사용자 지정 기간
@@ -237,13 +301,36 @@ func (h *StatisticsHandler) calculateDateRange(statisticsType, startDate, endDat
 		period = "전체 기간"
 
 	default:
-		// 기본값: 이번 달
-		start = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-		end = start.AddDate(0, 1, -1)
-		period = now.Format("2006년 1월")
+		// 기본값: 현재 월
+		h.setCurrentMonth(&start, &end, &period, now)
 	}
 
 	return start.Format("2006-01-02"), end.Format("2006-01-02"), period
+}
+
+// 현재 주 설정 헬퍼 함수
+func (h *StatisticsHandler) setCurrentWeek(start, end *time.Time, period *string, now time.Time) {
+	weekday := int(now.Weekday())
+	if weekday == 0 {
+		weekday = 7 // 일요일을 7로 변경
+	}
+	*start = now.AddDate(0, 0, -(weekday - 1))
+	*end = start.AddDate(0, 0, 6)
+	*period = start.Format("2006년 1월 2일") + " ~ " + end.Format("1월 2일")
+}
+
+// 현재 월 설정 헬퍼 함수
+func (h *StatisticsHandler) setCurrentMonth(start, end *time.Time, period *string, now time.Time) {
+	*start = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	*end = start.AddDate(0, 1, -1)
+	*period = now.Format("2006년 1월")
+}
+
+// 현재 년도 설정 헬퍼 함수
+func (h *StatisticsHandler) setCurrentYear(start, end *time.Time, period *string, now time.Time) {
+	*start = time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
+	*end = time.Date(now.Year(), 12, 31, 23, 59, 59, 0, now.Location())
+	*period = now.Format("2006년")
 }
 
 // 차트 데이터 생성 헬퍼 함수

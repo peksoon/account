@@ -21,13 +21,43 @@
                 </el-select>
 
                 <el-select v-model="selectedPeriod" @change="handlePeriodChange" class="w-full sm:w-40">
-                    <el-option label="이번 주" value="week" />
-                    <el-option label="이번 달" value="month" />
-                    <el-option label="올해" value="year" />
+                    <el-option label="주간" value="week" />
+                    <el-option label="월" value="month" />
+                    <el-option label="년도" value="year" />
                     <el-option label="전체" value="all" />
                     <el-option label="기간 설정" value="custom" />
                 </el-select>
 
+                <!-- 주간 선택 -->
+                <div v-if="selectedPeriod === 'week'" class="flex gap-2">
+                    <el-select v-model="selectedYear" @change="handleYearChange" class="w-20" placeholder="년도">
+                        <el-option v-for="year in availableYears" :key="year" :label="year + '년'" :value="year" />
+                    </el-select>
+                    <el-select v-model="selectedWeek" @change="handleWeekChange" class="w-24" placeholder="주차">
+                        <el-option v-for="week in availableWeeks" :key="week.value" :label="week.label"
+                            :value="week.value" />
+                    </el-select>
+                </div>
+
+                <!-- 월 선택 -->
+                <div v-if="selectedPeriod === 'month'" class="flex gap-2">
+                    <el-select v-model="selectedYear" @change="handleYearChange" class="w-20" placeholder="년도">
+                        <el-option v-for="year in availableYears" :key="year" :label="year + '년'" :value="year" />
+                    </el-select>
+                    <el-select v-model="selectedMonth" @change="handleMonthChange" class="w-20" placeholder="월">
+                        <el-option v-for="month in availableMonths" :key="month.value" :label="month.label"
+                            :value="month.value" />
+                    </el-select>
+                </div>
+
+                <!-- 년도 선택 -->
+                <div v-if="selectedPeriod === 'year'" class="flex gap-2">
+                    <el-select v-model="selectedYear" @change="handleYearChange" class="w-20" placeholder="년도">
+                        <el-option v-for="year in availableYears" :key="year" :label="year + '년'" :value="year" />
+                    </el-select>
+                </div>
+
+                <!-- 커스텀 날짜 선택 -->
                 <div v-if="selectedPeriod === 'custom'" class="flex gap-2">
                     <el-date-picker v-model="customStartDate" type="date" placeholder="시작일" format="YYYY-MM-DD"
                         @change="handleCustomDateChange" />
@@ -119,7 +149,7 @@
                                 <div class="flex items-center justify-between">
                                     <span class="font-medium text-gray-900">{{ category.category_name }}</span>
                                     <span class="font-bold text-gray-800">{{ formatMoney(category.total_amount)
-                                        }}원</span>
+                                    }}원</span>
                                 </div>
                                 <div class="flex items-center justify-between mt-1">
                                     <span class="text-sm text-gray-500">{{ category.count }}건</span>
@@ -225,18 +255,19 @@
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center space-x-2">
                                     <!-- 선택된 키워드가 있을 때 전체 보기 버튼 표시 -->
-                                    <el-button v-if="selectedKeywordIndex !== null" size="small" @click="selectedKeywordIndex = null" type="info">
+                                    <el-button v-if="selectedKeywordIndex !== null" size="small"
+                                        @click="selectedKeywordIndex = null" type="info">
                                         📋 전체 보기
                                     </el-button>
                                     <span v-else class="text-sm font-medium text-gray-700">키워드 목록</span>
                                 </div>
-                                
+
                                 <!-- 키워드 정렬 버튼 -->
                                 <el-button size="small" @click="toggleKeywordSortOrder" type="default">
                                     {{ keywordSortOrder === 'desc' ? '💰 높은순' : '💸 낮은순' }}
                                 </el-button>
                             </div>
-                            
+
                             <!-- 키워드 리스트 -->
                             <div v-for="keyword in filteredKeywords" :key="keyword.keyword_id || keyword.keyword_name"
                                 class="keyword-item">
@@ -249,9 +280,10 @@
                                     <span>{{ (keyword.percentage || 0).toFixed(1) }}%</span>
                                 </div>
                             </div>
-                            
+
                             <!-- 선택된 키워드가 있을 때 안내 텍스트 -->
-                            <div v-if="selectedKeywordIndex !== null && filteredKeywords.length > 0" class="mt-3 p-2 bg-blue-50 rounded text-sm text-blue-600">
+                            <div v-if="selectedKeywordIndex !== null && filteredKeywords.length > 0"
+                                class="mt-3 p-2 bg-blue-50 rounded text-sm text-blue-600">
                                 💡 차트를 클릭하여 다른 키워드를 선택하거나 전체 보기를 클릭하세요.
                             </div>
                         </div>
@@ -320,6 +352,19 @@ export default {
         const selectedKeywordIndex = ref(null);
         const keywordSortOrder = ref('desc');
 
+        // 현재 주차를 계산하는 헬퍼 함수
+        function getCurrentWeek() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 1);
+            const days = Math.floor((now - start) / (24 * 60 * 60 * 1000));
+            return Math.ceil((days + start.getDay() + 1) / 7);
+        }
+
+        // 새로운 기간 선택 변수들
+        const selectedYear = ref(new Date().getFullYear());
+        const selectedMonth = ref(new Date().getMonth() + 1);
+        const selectedWeek = ref(getCurrentWeek());
+
         // 모바일 감지
         const isMobile = computed(() => {
             if (typeof window === 'undefined') return false;
@@ -331,32 +376,74 @@ export default {
         const users = computed(() => userStore.users || []);
         const budgetUsages = computed(() => statistics.value?.budget_usages || []);
 
+        // 사용 가능한 년도 목록 (현재 년도 기준 ±5년)
+        const availableYears = computed(() => {
+            const currentYear = new Date().getFullYear();
+            const years = [];
+            for (let year = currentYear - 5; year <= currentYear + 2; year++) {
+                years.push(year);
+            }
+            return years.reverse(); // 최신 년도부터 표시
+        });
+
+        // 사용 가능한 월 목록
+        const availableMonths = computed(() => {
+            return [
+                { value: 1, label: '1월' },
+                { value: 2, label: '2월' },
+                { value: 3, label: '3월' },
+                { value: 4, label: '4월' },
+                { value: 5, label: '5월' },
+                { value: 6, label: '6월' },
+                { value: 7, label: '7월' },
+                { value: 8, label: '8월' },
+                { value: 9, label: '9월' },
+                { value: 10, label: '10월' },
+                { value: 11, label: '11월' },
+                { value: 12, label: '12월' }
+            ];
+        });
+
+        // 사용 가능한 주차 목록 (선택된 년도 기준)
+        const availableWeeks = computed(() => {
+            const weeks = [];
+            // 해당 년도의 주차 수 계산 (대략 52-53주)
+            const weeksInYear = 53; // 최대 53주
+            for (let week = 1; week <= weeksInYear; week++) {
+                weeks.push({
+                    value: week,
+                    label: `${week}주차`
+                });
+            }
+            return weeks;
+        });
+
         // 선택된 키워드 리스트 (차트 클릭 시)
         const filteredKeywords = computed(() => {
             if (!keywordStatistics.value?.keywords) return [];
-            
+
             let keywords = [...keywordStatistics.value.keywords];
-            
+
             // 정렬 적용
             keywords.sort((a, b) => {
                 const amountA = a.total_amount || 0;
                 const amountB = b.total_amount || 0;
-                return keywordSortOrder.value === 'desc' 
-                    ? amountB - amountA 
+                return keywordSortOrder.value === 'desc'
+                    ? amountB - amountA
                     : amountA - amountB;
             });
-            
+
             // 선택된 키워드만 필터링
             if (selectedKeywordIndex.value !== null) {
                 // 정렬된 배열에서 원래 선택된 키워드를 찾아야 함
                 const originalKeyword = keywordStatistics.value.keywords[selectedKeywordIndex.value];
-                const selectedKeyword = keywords.find(k => 
+                const selectedKeyword = keywords.find(k =>
                     (k.keyword_id && k.keyword_id === originalKeyword?.keyword_id) ||
                     (k.keyword_name === originalKeyword?.keyword_name)
                 );
                 return selectedKeyword ? [selectedKeyword] : [];
             }
-            
+
             return keywords;
         });
 
@@ -413,8 +500,8 @@ export default {
             const sortedKeywords = [...keywordStatistics.value.keywords].sort((a, b) => {
                 const amountA = a.total_amount || 0;
                 const amountB = b.total_amount || 0;
-                return keywordSortOrder.value === 'desc' 
-                    ? amountB - amountA 
+                return keywordSortOrder.value === 'desc'
+                    ? amountB - amountA
                     : amountA - amountB;
             });
 
@@ -480,13 +567,13 @@ export default {
                             size: isMobile.value ? 10 : 11
                         },
                         maxWidth: isMobile.value ? 120 : undefined,
-                        generateLabels: function(chart) {
+                        generateLabels: function (chart) {
                             const labels = ChartJS.defaults.plugins.legend.labels.generateLabels(chart);
                             if (isMobile.value && labels && Array.isArray(labels)) {
                                 return labels.map(label => ({
                                     ...label,
-                                    text: (label.text && typeof label.text === 'string' && label.text.length > 8) 
-                                        ? label.text.substring(0, 8) + '...' 
+                                    text: (label.text && typeof label.text === 'string' && label.text.length > 8)
+                                        ? label.text.substring(0, 8) + '...'
                                         : (label.text || '키워드')
                                 }));
                             }
@@ -524,24 +611,24 @@ export default {
             onClick: (event, elements) => {
                 if (elements.length > 0) {
                     const clickedIndex = elements[0].index;
-                    
+
                     // 정렬된 키워드 배열에서 클릭된 키워드 찾기
                     const sortedKeywords = [...(keywordStatistics.value?.keywords || [])].sort((a, b) => {
                         const amountA = a.total_amount || 0;
                         const amountB = b.total_amount || 0;
-                        return keywordSortOrder.value === 'desc' 
-                            ? amountB - amountA 
+                        return keywordSortOrder.value === 'desc'
+                            ? amountB - amountA
                             : amountA - amountB;
                     });
-                    
+
                     const clickedKeyword = sortedKeywords[clickedIndex];
                     if (clickedKeyword) {
                         // 원본 배열에서의 인덱스 찾기
-                        const originalIndex = keywordStatistics.value?.keywords.findIndex(k => 
+                        const originalIndex = keywordStatistics.value?.keywords.findIndex(k =>
                             (k.keyword_id && k.keyword_id === clickedKeyword.keyword_id) ||
                             (k.keyword_name === clickedKeyword.keyword_name)
                         );
-                        
+
                         // 같은 키워드를 다시 클릭하면 전체 보기로 돌아감
                         if (selectedKeywordIndex.value === originalIndex) {
                             selectedKeywordIndex.value = null;
@@ -591,7 +678,16 @@ export default {
                     params.user = selectedUser.value;
                 }
 
-                if (selectedPeriod.value === 'custom' && customStartDate.value && customEndDate.value) {
+                // 기간별 파라미터 추가
+                if (selectedPeriod.value === 'week') {
+                    params.year = selectedYear.value;
+                    params.week = selectedWeek.value;
+                } else if (selectedPeriod.value === 'month') {
+                    params.year = selectedYear.value;
+                    params.month = selectedMonth.value;
+                } else if (selectedPeriod.value === 'year') {
+                    params.year = selectedYear.value;
+                } else if (selectedPeriod.value === 'custom' && customStartDate.value && customEndDate.value) {
                     params.start_date = customStartDate.value;
                     params.end_date = customEndDate.value;
                 }
@@ -618,6 +714,33 @@ export default {
                 customStartDate.value = null;
                 customEndDate.value = null;
             }
+
+            // 기간 타입이 변경될 때 기본값으로 초기화
+            if (selectedPeriod.value === 'week') {
+                selectedYear.value = new Date().getFullYear();
+                selectedWeek.value = getCurrentWeek();
+            } else if (selectedPeriod.value === 'month') {
+                selectedYear.value = new Date().getFullYear();
+                selectedMonth.value = new Date().getMonth() + 1;
+            } else if (selectedPeriod.value === 'year') {
+                selectedYear.value = new Date().getFullYear();
+            }
+
+            loadStatistics();
+        };
+
+        // 년도 변경 핸들러
+        const handleYearChange = () => {
+            loadStatistics();
+        };
+
+        // 월 변경 핸들러
+        const handleMonthChange = () => {
+            loadStatistics();
+        };
+
+        // 주차 변경 핸들러
+        const handleWeekChange = () => {
             loadStatistics();
         };
 
@@ -652,13 +775,22 @@ export default {
                     category: selectedType.value
                 };
 
-                if (selectedPeriod.value === 'custom' && customStartDate.value && customEndDate.value) {
+                // 기간별 파라미터 추가
+                if (selectedPeriod.value === 'week') {
+                    params.year = selectedYear.value;
+                    params.week = selectedWeek.value;
+                } else if (selectedPeriod.value === 'month') {
+                    params.year = selectedYear.value;
+                    params.month = selectedMonth.value;
+                } else if (selectedPeriod.value === 'year') {
+                    params.year = selectedYear.value;
+                } else if (selectedPeriod.value === 'custom' && customStartDate.value && customEndDate.value) {
                     params.start_date = customStartDate.value;
                     params.end_date = customEndDate.value;
                 }
 
                 await statisticsStore.fetchKeywordStatistics(params);
-                
+
                 // 스크롤을 키워드 상세 영역으로 이동
                 setTimeout(() => {
                     const keywordSection = document.querySelector('.keyword-detail-section');
@@ -714,6 +846,11 @@ export default {
             selectedKeywordIndex,
             keywordSortOrder,
 
+            // 새로운 기간 선택 변수들
+            selectedYear,
+            selectedMonth,
+            selectedWeek,
+
             statistics,
             keywordStatistics,
             users,
@@ -724,6 +861,11 @@ export default {
             keywordChartData,
             chartOptions,
             keywordChartOptions,
+
+            // 새로운 computed 속성들
+            availableYears,
+            availableMonths,
+            availableWeeks,
 
             // 기준치 관련
             totalMonthlyBudget,
@@ -736,6 +878,12 @@ export default {
             handleTypeChange,
             handlePeriodChange,
             handleCustomDateChange,
+
+            // 새로운 핸들러들
+            handleYearChange,
+            handleMonthChange,
+            handleWeekChange,
+
             toggleSortOrder,
             toggleKeywordSortOrder,
             showCategoryDetail,
@@ -931,13 +1079,13 @@ export default {
     .keyword-chart {
         height: 180px !important;
     }
-    
+
     .mobile-chart {
         height: 180px !important;
         max-width: 100%;
         margin: 0;
     }
-    
+
     .keyword-detail-section .card {
         margin: 0 1rem;
     }

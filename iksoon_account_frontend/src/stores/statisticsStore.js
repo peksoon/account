@@ -77,6 +77,17 @@ export const useStatisticsStore = defineStore('statistics', {
           queryParams.append('user', params.user);
         }
         
+        // 새로운 개별 기간 선택 파라미터 추가
+        if (params.year) {
+          queryParams.append('year', params.year);
+        }
+        if (params.month) {
+          queryParams.append('month', params.month);
+        }
+        if (params.week) {
+          queryParams.append('week', params.week);
+        }
+        
         // 커스텀 날짜 범위가 있는 경우
         if (params.start_date && params.end_date) {
           queryParams.append('start_date', params.start_date);
@@ -114,6 +125,17 @@ export const useStatisticsStore = defineStore('statistics', {
         // 기본 파라미터 설정
         queryParams.append('type', params.type || 'month');
         queryParams.append('category', params.category || 'out');
+        
+        // 새로운 개별 기간 선택 파라미터 추가
+        if (params.year) {
+          queryParams.append('year', params.year);
+        }
+        if (params.month) {
+          queryParams.append('month', params.month);
+        }
+        if (params.week) {
+          queryParams.append('week', params.week);
+        }
         
         // 커스텀 날짜 범위가 있는 경우
         if (params.start_date && params.end_date) {
@@ -169,6 +191,38 @@ export const useStatisticsStore = defineStore('statistics', {
     // 전체 통계 조회
     async fetchAllStatistics(category = 'out') {
       return await this.fetchPeriodStatistics('all', category);
+    },
+
+    // 특정 년도/월 통계 조회
+    async fetchSpecificMonthStatistics(year, month, category = 'out') {
+      const params = {
+        type: 'month',
+        category,
+        year,
+        month
+      };
+      return await this.fetchStatistics(params);
+    },
+
+    // 특정 년도/주차 통계 조회
+    async fetchSpecificWeekStatistics(year, week, category = 'out') {
+      const params = {
+        type: 'week',
+        category,
+        year,
+        week
+      };
+      return await this.fetchStatistics(params);
+    },
+
+    // 특정 년도 통계 조회
+    async fetchSpecificYearStatistics(year, category = 'out') {
+      const params = {
+        type: 'year',
+        category,
+        year
+      };
+      return await this.fetchStatistics(params);
     },
     
     // 통계 데이터 초기화
