@@ -209,6 +209,7 @@ func (db *DB) SearchOutAccountsByKeyword(keyword, startDate, endDate string) ([]
 func (db *DB) UpdateOutAccount(uuidStr, date, user string, money, categoryID int, keywordID *int, paymentMethodID int, memo string) error {
 	parsedDate, err := utils.ParseDateTimeKST(date)
 	if err != nil {
+		utils.LogError("지출 업데이트 날짜 파싱", err)
 		return fmt.Errorf("날짜 파싱 오류: %v", err)
 	}
 	formattedDate := utils.FormatDateTimeKST(parsedDate)
@@ -218,20 +219,33 @@ func (db *DB) UpdateOutAccount(uuidStr, date, user string, money, categoryID int
     SET date = ?, money = ?, user = ?, category_id = ?, keyword_id = ?, payment_method_id = ?, memo = ?, updated_at = CURRENT_TIMESTAMP
     WHERE uuid = ?`
 
+	// 디버깅용 상세 로깅
+	utils.Debug("지출 데이터 업데이트 시도: UUID=%s, Date=%s, User=%s, Money=%d, CategoryID=%d, KeywordID=%v, PaymentMethodID=%d, Memo=%s",
+		uuidStr, formattedDate, user, money, categoryID, keywordID, paymentMethodID, memo)
+
 	result, err := db.Conn.Exec(updateQuery, formattedDate, money, user, categoryID, keywordID, paymentMethodID, memo, uuidStr)
 	if err != nil {
+		utils.LogError("지출 데이터 SQL 업데이트 실행", err)
+		utils.Debug("실패한 지출 업데이트 SQL: %s", updateQuery)
+		utils.Debug("실패한 지출 업데이트 파라미터: [%s, %d, %s, %d, %v, %d, %s, %s]",
+			formattedDate, money, user, categoryID, keywordID, paymentMethodID, memo, uuidStr)
 		return fmt.Errorf("지출 데이터 업데이트 오류: %v", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		utils.LogError("지출 업데이트 결과 확인", err)
 		return fmt.Errorf("지출 업데이트 결과 확인 오류: %v", err)
 	}
 
+	utils.Debug("지출 데이터 업데이트 완료: UUID=%s, 영향받은 행=%d", uuidStr, rowsAffected)
+
 	if rowsAffected == 0 {
+		utils.Debug("업데이트된 행이 없음: UUID %s를 찾을 수 없습니다", uuidStr)
 		return fmt.Errorf("no rows affected")
 	}
 
+	utils.Debug("지출 데이터 업데이트 성공: UUID=%s", uuidStr)
 	return nil
 }
 

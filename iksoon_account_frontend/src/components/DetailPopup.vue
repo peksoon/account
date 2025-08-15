@@ -89,7 +89,11 @@
 
                 <!-- 입금경로 -->
                 <el-form-item label="입금경로">
-                  <el-input v-model="localEventDetail.deposit_path_name" placeholder="입금경로를 입력하세요" size="large" />
+                  <el-select v-model="localEventDetail.deposit_path" placeholder="입금경로를 선택하세요" size="large"
+                    class="w-full" filterable allow-create>
+                    <el-option v-for="path in depositPathOptions" :key="path.id" :label="path.name"
+                      :value="path.name" />
+                  </el-select>
                 </el-form-item>
               </div>
             </div>
@@ -278,6 +282,7 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useCategoryStore } from '../stores/categoryStore';
 import { usePaymentMethodStore } from '../stores/paymentMethodStore';
+import { useDepositPathStore } from '../stores/depositPathStore';
 
 export default {
   components: {
@@ -305,6 +310,7 @@ export default {
     // Stores
     const categoryStore = useCategoryStore();
     const paymentMethodStore = usePaymentMethodStore();
+    const depositPathStore = useDepositPathStore();
 
     // 로컬 이벤트 상세 데이터
     const localEventDetail = ref({ ...props.eventDetail });
@@ -342,6 +348,15 @@ export default {
       }
     });
 
+    // 입금경로 옵션 목록
+    const depositPathOptions = computed(() => {
+      return depositPathStore.activeDepositPaths.map(path => ({
+        id: path.id,
+        name: path.name,
+        value: path.name
+      }));
+    });
+
     // 폼 유효성 검사
     const isFormValid = computed(() => {
       return localEventDetail.value.user &&
@@ -353,7 +368,7 @@ export default {
     // props 변경 감지
     watch(() => props.eventDetail, (newVal) => {
       localEventDetail.value = { ...newVal };
-      
+
       // 카테고리 이름이 없고 ID가 있는 경우 이름 설정
       if (!localEventDetail.value.category_name) {
         if (localEventDetail.value.category_id) {
@@ -379,21 +394,35 @@ export default {
 
         // 데이터 정리
         const accountData = { ...localEventDetail.value };
-        
+
         // category_name이 있으면 category 필드에도 설정
         if (accountData.category_name) {
           accountData.category = accountData.category_name;
         }
 
+        console.log('DetailPopup에서 업데이트 이벤트 발생:', accountData);
+
+        // 부모 컴포넌트에 업데이트 이벤트 전송
         emit('update', accountData);
 
-        ElMessage.success('데이터가 성공적으로 업데이트되었습니다.');
+        // 약간의 지연 후 편집 모드 종료 (비동기 업데이트 완료 대기)
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // 컴포넌트가 여전히 마운트된 상태인지 확인
+        if (isEditMode.value !== undefined) {
+          isEditMode.value = false;
+          ElMessage.success('데이터가 성공적으로 업데이트되었습니다.');
+        }
 
       } catch (error) {
         console.error('Form validation failed:', error);
-        ElMessage.error('입력 정보를 확인해주세요.');
+        if (isEditMode.value !== undefined) {
+          ElMessage.error('입력 정보를 확인해주세요.');
+        }
       } finally {
-        updating.value = false;
+        if (updating.value !== undefined) {
+          updating.value = false;
+        }
       }
     };
 
@@ -429,7 +458,7 @@ export default {
       isEditMode.value = true;
       // 편집 모드 시작 시 현재 데이터를 다시 로드하여 최신 상태 반영
       localEventDetail.value = { ...props.eventDetail };
-      
+
       // 카테고리 이름 설정 (ID가 있는 경우 이름으로 변환)
       if (localEventDetail.value.category_id && !localEventDetail.value.category_name) {
         const categoryName = getCategoryName(localEventDetail.value.category_id);
@@ -493,7 +522,8 @@ export default {
     onMounted(async () => {
       try {
         await paymentMethodStore.fetchPaymentMethods();
-        
+        await depositPathStore.fetchDepositPaths();
+
         // 초기 카테고리 이름 설정
         if (!localEventDetail.value.category_name) {
           if (localEventDetail.value.category_id) {
@@ -517,6 +547,7 @@ export default {
       localEventDetail,
       rules,
       availableCategories,
+      depositPathOptions,
       isFormValid,
       updateAccount,
       confirmDelete,

@@ -52,7 +52,7 @@
                   </el-button>
                   <el-button @click="openKeywordSearch" type="primary" :size="isMobile ? 'small' : 'default'"
                     class="flex-shrink-0">
-                    <Search :class="isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'" />
+                    <SearchIcon :class="isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'" />
                     {{ isMobile ? '검색' : '🔍 키워드 검색' }}
                   </el-button>
                   <el-button @click="openBudgetManager" type="warning" :size="isMobile ? 'small' : 'default'"
@@ -173,7 +173,7 @@
                   </div>
                   <div>
                     <p class="font-semibold text-gray-800">{{ getCategoryName(data.category_id) || data.category || '-'
-                      }}
+                    }}
                     </p>
                     <p v-if="data.keyword_name || data.keyword" class="text-sm text-gray-600">🏷️ {{ data.keyword_name
                       ||
@@ -264,6 +264,7 @@
 import { ref, onMounted, computed, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -284,12 +285,12 @@ import BudgetManager from './BudgetManager.vue';
 
 import {
   Calendar,
-  BarChart,
+  PieChart as BarChart,
   TrendingUp,
   TrendingDown,
   Wallet,
   DollarSign,
-  Search,
+  Search as SearchIcon,
   Download
 } from 'lucide-vue-next';
 
@@ -641,18 +642,37 @@ export default {
 
     // 계정 업데이트
     const updateAccount = async (updatedData) => {
+      if (!updatedData) return;
+
       loading.value = true;
       try {
+        console.log('업데이트 시작:', updatedData);
         await accountStore.updateAccount(updatedData);
-        popupStore.closePopup();
+        console.log('백엔드 업데이트 완료, 캘린더 새로고침 시작...');
+
+        // 비동기 작업들을 순차적으로 처리
         await fetchAndUpdateCalendar();
+        console.log('캘린더 새로고침 완료');
+
+        // Vue의 다음 tick을 기다림
+        await nextTick();
 
         // 현재 선택된 날짜의 데이터 다시 불러오기
         if (selectedDate.value) {
           selectedDateData.value = accountStore.fetchDataForDate(selectedDate.value);
+          console.log('선택된 날짜 데이터 새로고침 완료');
         }
+
+        // 추가 tick을 기다린 후 팝업 닫기
+        await nextTick();
+        if (popupStore && typeof popupStore.closePopup === 'function') {
+          popupStore.closePopup();
+          console.log('팝업 닫기 완료');
+        }
+
       } catch (error) {
         console.error('Account update error:', error);
+        ElMessage.error('업데이트 중 오류가 발생했습니다.');
       } finally {
         loading.value = false;
       }
@@ -933,7 +953,7 @@ export default {
       TrendingUp,
       TrendingDown,
       Wallet,
-      Search
+      SearchIcon
     };
   },
 };

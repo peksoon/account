@@ -87,9 +87,13 @@ export const useCategoryStore = defineStore('category', {
     // 카테고리 삭제
     async deleteCategory(categoryId) {
       try {
-        const response = await axios.delete(
-          `${BACKEND_API_BASE_URL}/categories/delete?id=${categoryId}`
-        );
+        if (!categoryId || categoryId <= 0) {
+          throw new Error('유효하지 않은 카테고리 ID입니다');
+        }
+        
+        const url = `${BACKEND_API_BASE_URL}/categories/${encodeURIComponent(categoryId)}`;
+        
+        const response = await axios.delete(url);
         
         // 삭제 후 목록 새로고침
         await this.fetchCategories();
@@ -97,6 +101,7 @@ export const useCategoryStore = defineStore('category', {
         return response.data;
       } catch (error) {
         console.error('카테고리 삭제 오류:', error);
+        console.error('삭제 오류 상세:', error.response?.data);
         throw error;
       }
     },
@@ -104,9 +109,13 @@ export const useCategoryStore = defineStore('category', {
     // 카테고리 강제 삭제 (관련 데이터도 함께 삭제)
     async forceDeleteCategory(categoryId) {
       try {
-        const response = await axios.delete(
-          `${BACKEND_API_BASE_URL}/categories/force-delete?id=${categoryId}`
-        );
+        if (!categoryId || categoryId <= 0) {
+          throw new Error('유효하지 않은 카테고리 ID입니다');
+        }
+        
+        const url = `${BACKEND_API_BASE_URL}/categories/${encodeURIComponent(categoryId)}/force-delete`;
+        
+        const response = await axios.delete(url);
         
         // 삭제 후 목록 새로고침
         await this.fetchCategories();
@@ -114,6 +123,7 @@ export const useCategoryStore = defineStore('category', {
         return response.data;
       } catch (error) {
         console.error('카테고리 강제 삭제 오류:', error);
+        console.error('오류 상세:', error.response?.data);
         throw error;
       }
     },

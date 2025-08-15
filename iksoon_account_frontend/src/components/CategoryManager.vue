@@ -205,10 +205,40 @@ export default {
           return;
         }
 
-        if (error.response?.data?.message) {
-          ElMessage.error(error.response.data.message);
+
+
+        // 카테고리가 사용 중인 경우 강제 삭제 옵션 제공
+        if (error.response?.data?.message &&
+          error.response.data.message.includes('사용하는 데이터가 존재')) {
+          try {
+            const forceResult = await ElMessageBox.confirm(
+              `'${category.name}' 카테고리가 사용 중입니다.\n강제로 삭제하시겠습니까? (기존 가계부 데이터는 유지됩니다)`,
+              '강제 삭제 확인',
+              {
+                confirmButtonText: '강제 삭제',
+                cancelButtonText: '취소',
+                type: 'error'
+              }
+            );
+
+            if (forceResult === 'confirm') {
+              loading.value = true;
+              await categoryStore.forceDeleteCategory(category.id);
+              ElMessage.success('카테고리가 강제 삭제되었습니다');
+            }
+          } catch (forceError) {
+            if (forceError === 'cancel') {
+              return;
+            }
+            console.error('카테고리 강제 삭제 오류:', forceError);
+            ElMessage.error('카테고리 강제 삭제 중 오류가 발생했습니다');
+          }
         } else {
-          ElMessage.error('카테고리 삭제 중 오류가 발생했습니다');
+          if (error.response?.data?.message) {
+            ElMessage.error(error.response.data.message);
+          } else {
+            ElMessage.error('카테고리 삭제 중 오류가 발생했습니다');
+          }
         }
       } finally {
         loading.value = false;

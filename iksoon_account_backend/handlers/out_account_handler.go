@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"iksoon_account_backend/database"
@@ -322,9 +323,12 @@ func (h *OutAccountHandler) UpdateOutAccountHandler(w http.ResponseWriter, r *ht
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.LogError("지출 업데이트 JSON 디코딩", err)
 		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "잘못된 요청 데이터입니다.")
 		return
 	}
+
+	utils.Debug("지출 업데이트 요청 데이터: %+v", req)
 
 	// 입력 검증
 	if req.UUID == "" {
@@ -364,9 +368,23 @@ func (h *OutAccountHandler) UpdateOutAccountHandler(w http.ResponseWriter, r *ht
 		keywordID = &keywordIDValue
 	}
 
-	// 지출 데이터 업데이트
-	err := h.DB.UpdateOutAccount(req.UUID, req.Date, req.User, req.Money, req.CategoryID, keywordID, req.PaymentMethodID, req.Memo)
+	// UUID 존재 여부 먼저 확인
+	existingAccount, err := h.DB.GetOutAccountByUUID(req.UUID)
 	if err != nil {
+		utils.LogError("지출 데이터 존재 확인", err)
+		utils.SendErrorResponse(w, http.StatusNotFound, models.ErrCodeNotFound, "해당 UUID의 지출 데이터를 찾을 수 없습니다")
+		return
+	}
+	utils.Debug("업데이트 대상 지출 데이터 확인: UUID=%s, 기존 데이터=%+v", req.UUID, existingAccount)
+
+	// 지출 데이터 업데이트
+	err = h.DB.UpdateOutAccount(req.UUID, req.Date, req.User, req.Money, req.CategoryID, keywordID, req.PaymentMethodID, req.Memo)
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows affected") {
+			utils.SendErrorResponse(w, http.StatusNotFound, models.ErrCodeNotFound, "업데이트할 지출 데이터를 찾을 수 없습니다")
+			return
+		}
+		utils.LogError("지출 데이터 업데이트", err)
 		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "데이터 업데이트 중 오류 발생")
 		return
 	}

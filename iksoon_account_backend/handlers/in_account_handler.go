@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"iksoon_account_backend/database"
 	"iksoon_account_backend/models"
@@ -235,9 +236,13 @@ func (h *InAccountHandler) UpdateInAccountHandler(w http.ResponseWriter, r *http
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.LogError("수입 업데이트 JSON 디코딩", err)
 		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "잘못된 요청 데이터입니다.")
 		return
 	}
+
+	utils.Debug("수입 업데이트 요청 데이터: %+v", req)
+	utils.Debug("카테고리 ID 상세 확인: CategoryID=%d", req.CategoryID)
 
 	// 입력 검증
 	if req.UUID == "" {
@@ -295,9 +300,23 @@ func (h *InAccountHandler) UpdateInAccountHandler(w http.ResponseWriter, r *http
 		keywordID = &keywordIDValue
 	}
 
+	// UUID 존재 여부 먼저 확인
+	existingAccount, err := h.DB.GetInAccountByUUID(req.UUID)
+	if err != nil {
+		utils.LogError("수입 데이터 존재 확인", err)
+		utils.SendErrorResponse(w, http.StatusNotFound, models.ErrCodeNotFound, "해당 UUID의 수입 데이터를 찾을 수 없습니다")
+		return
+	}
+	utils.Debug("업데이트 대상 수입 데이터 확인: UUID=%s, 기존 데이터=%+v", req.UUID, existingAccount)
+
 	// 수입 데이터 업데이트
 	err = h.DB.UpdateInAccount(req.UUID, req.Date, req.User, req.Money, req.CategoryID, keywordID, depositPathID, req.Memo)
 	if err != nil {
+		if strings.Contains(err.Error(), "no rows affected") {
+			utils.SendErrorResponse(w, http.StatusNotFound, models.ErrCodeNotFound, "업데이트할 수입 데이터를 찾을 수 없습니다")
+			return
+		}
+		utils.LogError("수입 데이터 업데이트", err)
 		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "데이터 업데이트 중 오류 발생")
 		return
 	}

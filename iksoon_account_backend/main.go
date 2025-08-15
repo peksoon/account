@@ -92,8 +92,10 @@ func main() {
 	http.Handle("/categories", enableCorsAndLogging(http.HandlerFunc(categoryHandler.GetCategoriesHandler)))                    // GET: 카테고리 목록 조회 (type 파라미터로 out/in 필터링)
 	http.Handle("/categories/create", enableCorsAndLogging(http.HandlerFunc(categoryHandler.CreateCategoryHandler)))            // POST: 신규 카테고리 생성
 	http.Handle("/categories/update", enableCorsAndLogging(http.HandlerFunc(categoryHandler.UpdateCategoryHandler)))            // PUT: 카테고리 정보 수정
-	http.Handle("/categories/delete", enableCorsAndLogging(http.HandlerFunc(categoryHandler.DeleteCategoryHandler)))            // DELETE: 카테고리 삭제 (사용 중이면 실패)
-	http.Handle("/categories/force-delete", enableCorsAndLogging(http.HandlerFunc(categoryHandler.ForceDeleteCategoryHandler))) // DELETE: 카테고리 강제 삭제
+	http.Handle("/categories/delete", enableCorsAndLogging(http.HandlerFunc(categoryHandler.DeleteCategoryHandler)))            // DELETE: 카테고리 삭제 (사용 중이면 실패) - 기존 방식
+	http.Handle("/categories/force-delete", enableCorsAndLogging(http.HandlerFunc(categoryHandler.ForceDeleteCategoryHandler))) // DELETE: 카테고리 강제 삭제 - 기존 방식
+	// RESTful API 스타일 추가
+	http.Handle("/categories/", enableCorsAndLogging(http.HandlerFunc(categoryHandler.CategoryRESTHandler))) // DELETE: /categories/{id} 또는 /categories/{id}/force-delete
 
 	// 키워드 관리 API
 	http.Handle("/keywords/suggestions", enableCorsAndLogging(http.HandlerFunc(keywordHandler.GetKeywordSuggestionsHandler)))

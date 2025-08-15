@@ -129,6 +129,13 @@
             :expense-amount="budgetAlertData.expenseAmount" :expense-date="budgetAlertData.expenseDate"
             :expense-keyword="budgetAlertData.expenseKeyword" @close="closeBudgetAlert"
             @open-budget-management="openBudgetManager" />
+
+        <!-- 관리 모달들 -->
+        <CategoryManager v-if="showCategoryManager" @close="closeCategoryManager" />
+        <PaymentMethodManager v-if="showPaymentMethodManager" @close="closePaymentMethodManager" />
+        <DepositPathManager v-if="showDepositPathManager" @close="closeDepositPathManager" />
+        <KeywordManager v-if="showKeywordManager" :category-id="keywordManagerCategoryId" @close="closeKeywordManager" />
+        <UserManager v-if="showUserManager" @close="closeUserManager" />
     </div>
 </template>
 
@@ -157,6 +164,11 @@ import DateStep from './wizard-steps/DateStep.vue';
 import ReviewStep from './wizard-steps/ReviewStep.vue';
 import SummaryPanel from './wizard-steps/SummaryPanel.vue';
 import BudgetAlertPopup from './BudgetAlertPopup.vue';
+import CategoryManager from './CategoryManager.vue';
+import PaymentMethodManager from './PaymentMethodManager.vue';
+import DepositPathManager from './DepositPathManager.vue';
+import KeywordManager from './KeywordManager.vue';
+import UserManager from './UserManager.vue';
 
 // Stores
 import { useCategoryStore } from '../stores/categoryStore';
@@ -187,7 +199,12 @@ export default {
         DateStep,
         ReviewStep,
         SummaryPanel,
-        BudgetAlertPopup
+        BudgetAlertPopup,
+        CategoryManager,
+        PaymentMethodManager,
+        DepositPathManager,
+        KeywordManager,
+        UserManager
     },
     props: {
         newAccount: {
@@ -226,6 +243,14 @@ export default {
             expenseDate: '',
             expenseKeyword: ''
         });
+
+        // 관리 모달 상태
+        const showCategoryManager = ref(false);
+        const showPaymentMethodManager = ref(false);
+        const showDepositPathManager = ref(false);
+        const showKeywordManager = ref(false);
+        const showUserManager = ref(false);
+        const keywordManagerCategoryId = ref(null);
 
         // 뒤로 가기 함수
         const goBack = () => {
@@ -504,19 +529,41 @@ export default {
 
         // 관리자 모달 열기
         const openCategoryManager = () => {
-            emit('open-category-manager');
+            showCategoryManager.value = true;
         };
 
         const openPaymentMethodManager = () => {
-            emit('open-payment-method-manager');
+            showPaymentMethodManager.value = true;
         };
 
         const openDepositPathManager = () => {
-            emit('open-deposit-path-manager');
+            showDepositPathManager.value = true;
         };
 
         const openUserManager = () => {
-            emit('open-user-manager');
+            showUserManager.value = true;
+        };
+
+        // 관리자 모달 닫기
+        const closeCategoryManager = () => {
+            showCategoryManager.value = false;
+        };
+
+        const closePaymentMethodManager = () => {
+            showPaymentMethodManager.value = false;
+        };
+
+        const closeDepositPathManager = () => {
+            showDepositPathManager.value = false;
+        };
+
+        const closeUserManager = () => {
+            showUserManager.value = false;
+        };
+
+        const closeKeywordManager = () => {
+            showKeywordManager.value = false;
+            keywordManagerCategoryId.value = null;
         };
 
         // 기준치 알림 관련 메서드
@@ -538,7 +585,8 @@ export default {
         };
 
         const openKeywordManager = (categoryId) => {
-            emit('open-keyword-manager', categoryId);
+            keywordManagerCategoryId.value = categoryId;
+            showKeywordManager.value = true;
         };
 
         // 접근성 관련
@@ -636,6 +684,19 @@ export default {
             budgetAlertData,
             closeBudgetAlert,
             openBudgetManager,
+
+            // Management Modals
+            showCategoryManager,
+            showPaymentMethodManager,
+            showDepositPathManager,
+            showKeywordManager,
+            showUserManager,
+            keywordManagerCategoryId,
+            closeCategoryManager,
+            closePaymentMethodManager,
+            closeDepositPathManager,
+            closeKeywordManager,
+            closeUserManager,
 
             // Icons
             DollarSign,

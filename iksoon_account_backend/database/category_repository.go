@@ -143,6 +143,11 @@ func (db *DB) CheckCategoryUsage(categoryID int) (bool, error) {
 		return false, fmt.Errorf("수입 데이터에서 카테고리 사용 여부 확인 오류: %v", err)
 	}
 
+	// 개발 시에만 로그 출력
+	if outCount+inCount > 0 {
+		fmt.Printf("카테고리 %d 사용 여부 확인: 지출 %d건, 수입 %d건, 총 %d건\n", categoryID, outCount, inCount, outCount+inCount)
+	}
+
 	return (outCount + inCount) > 0, nil
 }
 
