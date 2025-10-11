@@ -44,10 +44,19 @@
             <!-- 카테고리 -->
             <el-form-item label="카테고리" prop="category_name" class="mb-6">
               <el-select v-model="localEventDetail.category_name" placeholder="카테고리를 선택하세요" size="large" class="w-full"
-                filterable allow-create>
+                filterable allow-create :loading="categoryStore.loading">
                 <el-option v-for="category in availableCategories" :key="category" :label="category"
                   :value="category" />
               </el-select>
+              <div v-if="categoryStore.loading" class="mt-1 text-xs text-gray-500">
+                카테고리 목록을 불러오는 중...
+              </div>
+              <div v-else-if="availableCategories.length === 0" class="mt-1 text-xs text-orange-500">
+                {{ localEventDetail.type === 'out' ? '지출' : '수입' }} 카테고리가 없습니다.
+              </div>
+              <div v-else class="mt-1 text-xs text-gray-500">
+                {{ availableCategories.length }}개의 카테고리를 사용할 수 있습니다.
+              </div>
             </el-form-item>
 
             <!-- 지출 전용 필드 -->
@@ -332,20 +341,17 @@ export default {
       ]
     };
 
-    // 사용 가능한 카테고리 목록
+    // 사용 가능한 카테고리 목록 (백엔드에서 가져오기)
     const availableCategories = computed(() => {
-      if (localEventDetail.value.type === 'out') {
-        return [
-          '식비', '교통비', '생활용품', '의료비', '교육비',
-          '문화생활', '쇼핑', '여행', '통신비', '주거비',
-          '공과금', '보험료', '기타'
-        ];
-      } else {
-        return [
-          '급여', '용돈', '상여금', '부업', '투자수익',
-          '보험금', '환급', '기타수입'
-        ];
+      if (!categoryStore.categories || categoryStore.categories.length === 0) {
+        return [];
       }
+
+      const filtered = categoryStore.categories
+        .filter(category => category.type === localEventDetail.value.type)
+        .map(category => category.name);
+
+      return filtered;
     });
 
     // 입금경로 옵션 목록
@@ -454,21 +460,29 @@ export default {
     };
 
     // 편집 모드 열기
-    const openEditMode = () => {
-      isEditMode.value = true;
-      // 편집 모드 시작 시 현재 데이터를 다시 로드하여 최신 상태 반영
-      localEventDetail.value = { ...props.eventDetail };
+    const openEditMode = async () => {
+      try {
+        // 항상 최신 카테고리 데이터를 로드 (캐시 무시)
+        await categoryStore.fetchCategories();
 
-      // 카테고리 이름 설정 (ID가 있는 경우 이름으로 변환)
-      if (localEventDetail.value.category_id && !localEventDetail.value.category_name) {
-        const categoryName = getCategoryName(localEventDetail.value.category_id);
-        if (categoryName) {
-          localEventDetail.value.category_name = categoryName;
+        isEditMode.value = true;
+        // 편집 모드 시작 시 현재 데이터를 다시 로드하여 최신 상태 반영
+        localEventDetail.value = { ...props.eventDetail };
+
+        // 카테고리 이름 설정 (ID가 있는 경우 이름으로 변환)
+        if (localEventDetail.value.category_id && !localEventDetail.value.category_name) {
+          const categoryName = getCategoryName(localEventDetail.value.category_id);
+          if (categoryName) {
+            localEventDetail.value.category_name = categoryName;
+          }
         }
-      }
-      // category 필드가 있고 category_name이 없는 경우
-      else if (localEventDetail.value.category && !localEventDetail.value.category_name) {
-        localEventDetail.value.category_name = localEventDetail.value.category;
+        // category 필드가 있고 category_name이 없는 경우
+        else if (localEventDetail.value.category && !localEventDetail.value.category_name) {
+          localEventDetail.value.category_name = localEventDetail.value.category;
+        }
+      } catch (error) {
+        console.error('편집 모드 시작 중 오류:', error);
+        ElMessage.error('편집 모드를 시작하는데 실패했습니다.');
       }
     };
 
@@ -521,8 +535,12 @@ export default {
     // 컴포넌트 마운트 시 데이터 로드
     onMounted(async () => {
       try {
-        await paymentMethodStore.fetchPaymentMethods();
-        await depositPathStore.fetchDepositPaths();
+        // 모든 필요한 데이터를 병렬로 로드
+        await Promise.all([
+          categoryStore.fetchCategories(),
+          paymentMethodStore.fetchPaymentMethods(),
+          depositPathStore.fetchDepositPaths()
+        ]);
 
         // 초기 카테고리 이름 설정
         if (!localEventDetail.value.category_name) {
@@ -537,6 +555,7 @@ export default {
         }
       } catch (error) {
         console.error('데이터 로드 오류:', error);
+        ElMessage.error('데이터를 불러오는데 실패했습니다.');
       }
     });
 
@@ -561,6 +580,7 @@ export default {
 
       // Stores
       paymentMethodStore,
+      categoryStore,
 
       // 아이콘들
       Tag,

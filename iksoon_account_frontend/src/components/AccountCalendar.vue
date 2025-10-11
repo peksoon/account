@@ -239,15 +239,6 @@
 
 
 
-    <!-- 하단 도구 영역 -->
-    <div class="container-responsive pb-8" v-if="viewMode === 'calendar'">
-      <div class="flex justify-center">
-        <el-button @click="openExportData" type="success" size="small" class="text-xs opacity-70 hover:opacity-100">
-          <Download class="w-3 h-3 mr-1" />
-          데이터 내보내기
-        </el-button>
-      </div>
-    </div>
 
     <!-- 기준치 알림 팝업 -->
     <BudgetAlertPopup :is-visible="showBudgetAlert" :budget-usage="budgetAlertData.budgetUsage"
@@ -290,8 +281,7 @@ import {
   TrendingDown,
   Wallet,
   DollarSign,
-  Search as SearchIcon,
-  Download
+  Search as SearchIcon
 } from 'lucide-vue-next';
 
 
@@ -313,7 +303,8 @@ export default {
     TrendingDown,
     Wallet,
     DollarSign,
-    Download
+    BarChart,
+    SearchIcon
   },
   setup() {
     const router = useRouter();
@@ -776,10 +767,6 @@ export default {
       router.push('/keyword-search');
     };
 
-    const openExportData = () => {
-      router.push('/export-data');
-    };
-
     const goBackToCalendar = () => {
       viewMode.value = 'calendar';
     };
@@ -933,7 +920,6 @@ export default {
       openStatistics,
       closeStatistics,
       openKeywordSearch,
-      openExportData,
       goBackToCalendar,
       showStatistics,
       viewMode,

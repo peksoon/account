@@ -16,14 +16,13 @@ func (db *DB) GetCategories(categoryType string) ([]models.Category, error) {
 		query = `
 			SELECT id, name, type, created_at, updated_at 
 			FROM categories 
-			WHERE type = ? AND is_active = 1
+			WHERE type = ?
 			ORDER BY name ASC`
 		args = append(args, categoryType)
 	} else {
 		query = `
 			SELECT id, name, type, created_at, updated_at 
 			FROM categories 
-			WHERE is_active = 1
 			ORDER BY type ASC, name ASC`
 	}
 

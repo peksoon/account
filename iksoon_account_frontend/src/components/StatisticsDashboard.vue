@@ -7,8 +7,18 @@
                 <p class="text-gray-600">가계부 통계를 한눈에 확인하세요</p>
             </div>
 
-            <!-- 필터 컨트롤 -->
-            <div class="flex flex-col sm:flex-row gap-4 mt-4 lg:mt-0">
+            <!-- 우측 상단 도구 버튼 -->
+            <div class="flex items-center gap-2 mt-4 lg:mt-0">
+                <el-button @click="openExportData" type="success" size="small" class="text-xs">
+                    <Download class="w-3 h-3 mr-1" />
+                    데이터 내보내기
+                </el-button>
+            </div>
+        </div>
+
+        <!-- 필터 컨트롤 -->
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+            <div class="flex flex-col sm:flex-row gap-4 w-full">
                 <el-select v-model="selectedUser" @change="handleUserChange" class="w-full sm:w-40"
                     placeholder="사용자 선택">
                     <el-option label="전체" value="" />
@@ -149,7 +159,7 @@
                                 <div class="flex items-center justify-between">
                                     <span class="font-medium text-gray-900">{{ category.category_name }}</span>
                                     <span class="font-bold text-gray-800">{{ formatMoney(category.total_amount)
-                                    }}원</span>
+                                        }}원</span>
                                 </div>
                                 <div class="flex items-center justify-between mt-1">
                                     <span class="text-sm text-gray-500">{{ category.count }}건</span>
@@ -307,7 +317,8 @@ import {
     BarChart,
     Calculator,
     PieChart,
-    Folder
+    Folder,
+    Download
 } from 'lucide-vue-next';
 import { ElMessage } from 'element-plus';
 import BudgetUsageDisplay from './BudgetUsageDisplay.vue';
@@ -320,6 +331,7 @@ import {
 } from 'chart.js';
 import { useStatisticsStore } from '../stores/statisticsStore';
 import { useUserStore } from '../stores/userStore';
+import { useRouter } from 'vue-router';
 
 // Chart.js 등록
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -333,6 +345,7 @@ export default {
         Calculator,
         PieChart,
         Folder,
+        Download,
         Doughnut,
         BudgetUsageDisplay
     },
@@ -340,6 +353,7 @@ export default {
     setup() {
         const statisticsStore = useStatisticsStore();
         const userStore = useUserStore();
+        const router = useRouter();
 
         const selectedType = ref('out');
         const selectedPeriod = ref('month');
@@ -823,6 +837,11 @@ export default {
             }
         };
 
+        // 데이터 내보내기 페이지로 이동
+        const openExportData = () => {
+            router.push('/export-data');
+        };
+
         onMounted(async () => {
             // 사용자 목록 로드
             try {
@@ -889,6 +908,7 @@ export default {
             showCategoryDetail,
             closeKeywordDetail,
             handleChartClick,
+            openExportData,
 
             // 아이콘들
             TrendingUp,
@@ -896,7 +916,8 @@ export default {
             BarChart,
             Calculator,
             PieChart,
-            Folder
+            Folder,
+            Download
         };
     }
 };
