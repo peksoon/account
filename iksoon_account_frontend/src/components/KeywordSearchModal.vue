@@ -189,7 +189,7 @@
     </div>
 
     <!-- Detail Modal -->
-    <DetailPopup v-if="showDetailModal" :eventDetail="selectedItem" :isEditMode="false" @close="closeDetailModal" />
+    <!-- DetailPopup 제거 - 이제 새 페이지로 이동 -->
   </div>
 </template>
 
@@ -197,9 +197,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Search, Calendar, FileText, Download } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
 import { useAccountStore } from '../stores/accountStore';
 import { useCategoryStore } from '../stores/categoryStore';
-import DetailPopup from './DetailPopup.vue';
+// DetailPopup import 제거 - 이제 새 페이지로 이동
 import { getTodayKST } from '../utils';
 
 export default {
@@ -208,10 +209,10 @@ export default {
     Search,
     Calendar,
     FileText,
-    Download,
-    DetailPopup
+    Download
   },
   setup() {
+    const router = useRouter();
     const accountStore = useAccountStore();
     const categoryStore = useCategoryStore();
 
@@ -384,10 +385,14 @@ export default {
       return category ? category.name : '';
     };
 
-    // Open detail modal
+    // Open detail modal (새 페이지로 이동)
     const openDetailModal = (item) => {
-      selectedItem.value = item;
-      showDetailModal.value = true;
+      router.push({
+        path: '/detail',
+        query: {
+          data: JSON.stringify(item)
+        }
+      });
     };
 
     // Close detail modal

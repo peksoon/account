@@ -193,7 +193,6 @@
     </div>
 
     <!-- Detail Modal -->
-    <DetailPopup v-if="showDetailModal" :eventDetail="selectedItem" :isEditMode="false" @close="closeDetailModal" />
   </div>
 </template>
 
@@ -204,7 +203,7 @@ import { Search, Calendar, FileText, Download } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import { useAccountStore } from '../stores/accountStore';
 import { useCategoryStore } from '../stores/categoryStore';
-import DetailPopup from './DetailPopup.vue';
+// DetailPopup import 제거 - 이제 새 페이지로 이동
 import { getTodayKST } from '../utils';
 
 export default {
@@ -213,8 +212,7 @@ export default {
     Search,
     Calendar,
     FileText,
-    Download,
-    DetailPopup
+    Download
   },
   setup() {
     const router = useRouter();
@@ -230,8 +228,9 @@ export default {
     const customEndDate = ref('');
     const searching = ref(false);
     const searchResults = ref([]);
-    const showDetailModal = ref(false);
-    const selectedItem = ref(null);
+    // 더 이상 사용하지 않는 변수들 (새 페이지로 이동하므로)
+    // const showDetailModal = ref(false);
+    // const selectedItem = ref(null);
     const hasSearched = ref(false);
     const keywordSuggestions = ref([]);
 
@@ -390,17 +389,21 @@ export default {
       return category ? category.name : '';
     };
 
-    // Open detail modal
+    // Open detail modal (새 페이지로 이동)
     const openDetailModal = (item) => {
-      selectedItem.value = item;
-      showDetailModal.value = true;
+      router.push({
+        path: '/detail',
+        query: {
+          data: JSON.stringify(item)
+        }
+      });
     };
 
-    // Close detail modal
-    const closeDetailModal = () => {
-      showDetailModal.value = false;
-      selectedItem.value = null;
-    };
+    // Close detail modal (더 이상 사용하지 않음)
+    // const closeDetailModal = () => {
+    //   showDetailModal.value = false;
+    //   selectedItem.value = null;
+    // };
 
     // Export results
     const exportResults = () => {
@@ -491,8 +494,6 @@ export default {
       customEndDate,
       searching,
       searchResults,
-      showDetailModal,
-      selectedItem,
       hasSearched,
       keywordSuggestions,
 
@@ -507,7 +508,6 @@ export default {
       formatDate,
       getCategoryName,
       openDetailModal,
-      closeDetailModal,
       exportResults,
       queryKeywordSuggestions,
       handleKeywordSelect,

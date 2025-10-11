@@ -3,6 +3,7 @@ import AccountCalendar from '../components/AccountCalendar.vue'
 import AddDataWizard from '../components/AddDataWizard.vue'
 import KeywordSearchPage from '../components/KeywordSearchPage.vue'
 import ExportDataPage from '../components/ExportDataPage.vue'
+import DetailPage from '../components/DetailPage.vue'
 
 const routes = [
   {
@@ -17,6 +18,14 @@ const routes = [
     props: route => ({
       newAccount: route.query.data ? JSON.parse(route.query.data) : {},
       selectedDate: route.query.date || null
+    })
+  },
+  {
+    path: '/detail',
+    name: 'Detail',
+    component: DetailPage,
+    props: route => ({
+      eventDetail: route.query.data ? JSON.parse(route.query.data) : {}
     })
   },
   {

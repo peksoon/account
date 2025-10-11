@@ -51,13 +51,6 @@ export const useStatisticsStore = defineStore('statistics', {
         top_category: state.statistics.top_category
       };
     },
-    
-    // 차트용 색상 팔레트
-    chartColors: () => [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-      '#F8C471', '#82E0AA', '#F1948A', '#85DCDB', '#D7DBDD'
-    ],
   },
   
   actions: {

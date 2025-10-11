@@ -130,8 +130,8 @@
                 </div>
 
                 <div class="chart-container">
-                    <Doughnut v-if="chartData.datasets[0].data.length > 0" :data="chartData" :options="chartOptions"
-                        @click="handleChartClick" />
+                    <Doughnut v-if="chartData.datasets[0].data.length > 0" :key="statistics?.period + selectedType"
+                        :data="chartData" :options="chartOptions" @click="handleChartClick" />
                     <div v-else class="empty-chart">
                         <PieChart class="w-16 h-16 text-gray-300 mx-auto mb-4" />
                         <p class="text-gray-500">표시할 데이터가 없습니다</p>
@@ -139,10 +139,10 @@
                 </div>
             </div>
 
-            <!-- 상위 카테고리 리스트 -->
+            <!-- 카테고리별 순위 리스트 -->
             <div class="card">
                 <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-xl font-bold text-gray-800">상위 카테고리</h2>
+                    <h2 class="text-xl font-bold text-gray-800">카테고리별 {{ selectedType === 'out' ? '지출' : '수입' }} 순위</h2>
                     <el-button size="small" @click="toggleSortOrder">
                         {{ sortOrder === 'desc' ? '↓ 높은순' : '↑ 낮은순' }}
                     </el-button>
@@ -152,14 +152,15 @@
                     <div v-for="(category, index) in sortedCategories" :key="category.category_id" class="category-item"
                         @click="showCategoryDetail(category)">
                         <div class="flex items-center">
-                            <div class="rank-badge" :class="`rank-${index + 1}`">
+                            <div class="rank-badge"
+                                :style="{ backgroundColor: getCategoryColor(category.category_name) }">
                                 {{ index + 1 }}
                             </div>
                             <div class="ml-3 flex-1">
                                 <div class="flex items-center justify-between">
                                     <span class="font-medium text-gray-900">{{ category.category_name }}</span>
                                     <span class="font-bold text-gray-800">{{ formatMoney(category.total_amount)
-                                        }}원</span>
+                                    }}원</span>
                                 </div>
                                 <div class="flex items-center justify-between mt-1">
                                     <span class="text-sm text-gray-500">{{ category.count }}건</span>
@@ -486,16 +487,39 @@ export default {
                 };
             }
 
-            return {
+            // 백엔드에서 받은 색상 데이터 디버깅
+            console.log('=== 카테고리 차트 색상 디버깅 ===');
+            console.log('전체 statistics 데이터:', statistics.value);
+            console.log('chart_data:', statistics.value.chart_data);
+
+            const colors = statistics.value.chart_data.map(item => {
+                console.log(`카테고리: ${item.label}, 색상: ${item.color}`);
+                return item.color;
+            });
+            console.log('최종 색상 배열:', colors);
+            console.log('=== 디버깅 끝 ===');
+
+            const chartDataResult = {
                 labels: statistics.value.chart_data.map(item => item.label),
                 datasets: [{
                     data: statistics.value.chart_data.map(item => item.value),
-                    backgroundColor: statistics.value.chart_data.map(item => item.color),
+                    backgroundColor: [...colors], // 배열 복사로 Chart.js 인식 개선
                     borderWidth: 0,
                     hoverOffset: 10
                 }]
             };
+
+            console.log('Chart.js로 전달할 최종 데이터:', chartDataResult);
+            return chartDataResult;
         });
+
+        // 카테고리별 색상 매핑 함수
+        const getCategoryColor = (categoryName) => {
+            if (!statistics.value?.chart_data) return '#3b82f6'; // 기본 파란색
+
+            const chartItem = statistics.value.chart_data.find(item => item.label === categoryName);
+            return chartItem ? chartItem.color : '#3b82f6';
+        };
 
         // 키워드 차트 데이터 (정렬된 순서로)
         const keywordChartData = computed(() => {
@@ -519,17 +543,25 @@ export default {
                     : amountA - amountB;
             });
 
-            // 색상 배열 생성 (다양한 색상)
-            const colors = [
-                '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
-                '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
-            ];
+            // 백엔드에서 받은 키워드 차트 데이터의 색상 사용
+            console.log('키워드 차트 데이터:', keywordStatistics.value.chart_data);
+            let colors = [];
+
+            if (keywordStatistics.value.chart_data && Array.isArray(keywordStatistics.value.chart_data)) {
+                // 백엔드에서 chart_data로 색상을 받은 경우
+                colors = keywordStatistics.value.chart_data.map(item => item.color);
+                console.log('백엔드에서 받은 키워드 색상:', colors);
+            } else {
+                // 백엔드에서 색상을 받지 못한 경우 기본 색상 사용 (임시)
+                console.log('백엔드에서 키워드 색상을 받지 못함');
+                colors = sortedKeywords.map((_, index) => `hsl(${(index * 40) % 360}, 70%, 60%)`);
+            }
 
             return {
                 labels: sortedKeywords.map(keyword => keyword?.keyword_name || '키워드'),
                 datasets: [{
                     data: sortedKeywords.map(keyword => keyword?.total_amount || 0),
-                    backgroundColor: sortedKeywords.map((_, index) => colors[index % colors.length]),
+                    backgroundColor: colors,
                     borderWidth: 0,
                     hoverOffset: 10
                 }]
@@ -909,6 +941,7 @@ export default {
             closeKeywordDetail,
             handleChartClick,
             openExportData,
+            getCategoryColor, // 추가된 함수
 
             // 아이콘들
             TrendingUp,
@@ -1010,22 +1043,6 @@ export default {
     font-size: 0.875rem;
     font-weight: 700;
     color: white;
-}
-
-.rank-1 {
-    background-color: #eab308;
-}
-
-.rank-2 {
-    background-color: #9ca3af;
-}
-
-.rank-3 {
-    background-color: #f97316;
-}
-
-.rank-badge:not(.rank-1):not(.rank-2):not(.rank-3) {
-    background-color: #3b82f6;
 }
 
 .progress-bar {

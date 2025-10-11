@@ -169,14 +169,14 @@ func (h *StatisticsHandler) GetCategoryKeywordStatisticsHandler(w http.ResponseW
 
 	// 차트 데이터 생성 (키워드용)
 	chartData := make([]models.ChartData, len(keywords))
-	colors := []string{"#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F"}
+	colors := h.generateColors(len(keywords))
 
 	for i, keyword := range keywords {
 		chartData[i] = models.ChartData{
 			Label:      keyword.KeywordName,
 			Value:      keyword.TotalAmount,
 			Percentage: keyword.Percentage,
-			Color:      colors[i%len(colors)],
+			Color:      colors[i],
 		}
 	}
 
@@ -333,17 +333,44 @@ func (h *StatisticsHandler) setCurrentYear(start, end *time.Time, period *string
 	*period = now.Format("2006년")
 }
 
+// 색상 생성 헬퍼 함수
+func (h *StatisticsHandler) generateColors(count int) []string {
+	colors := make([]string, count)
+
+	// 미리 정의된 색상 팔레트 (더 많은 색상)
+	predefinedColors := []string{
+		"#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
+		"#FF8A80", "#80CBC4", "#81C784", "#FFB74D", "#F06292", "#9575CD", "#64B5F6", "#4DB6AC",
+		"#AED581", "#FFD54F", "#FF8A65", "#A1887F", "#90A4AE", "#FFAB91", "#CE93D8", "#80DEEA",
+		"#C5E1A5", "#FFF176", "#BCAAA4", "#B39DDB", "#81D4FA", "#A5D6A7", "#FFCC02", "#FF7043",
+	}
+
+	for i := 0; i < count; i++ {
+		if i < len(predefinedColors) {
+			colors[i] = predefinedColors[i]
+		} else {
+			// HSL 색상 공간을 사용하여 고유한 색상 생성
+			hue := (i * 137) % 360      // 황금각도를 사용하여 색상 분산
+			saturation := 60 + (i%3)*15 // 60%, 75%, 90% 채도
+			lightness := 50 + (i%4)*10  // 50%, 60%, 70%, 80% 명도
+			colors[i] = fmt.Sprintf("hsl(%d, %d%%, %d%%)", hue, saturation, lightness)
+		}
+	}
+
+	return colors
+}
+
 // 차트 데이터 생성 헬퍼 함수
 func (h *StatisticsHandler) generateChartData(categories []models.CategoryStatistics) []models.ChartData {
 	chartData := make([]models.ChartData, len(categories))
-	colors := []string{"#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F"}
+	colors := h.generateColors(len(categories))
 
 	for i, category := range categories {
 		chartData[i] = models.ChartData{
 			Label:      category.CategoryName,
 			Value:      category.TotalAmount,
 			Percentage: category.Percentage,
-			Color:      colors[i%len(colors)],
+			Color:      colors[i],
 		}
 	}
 

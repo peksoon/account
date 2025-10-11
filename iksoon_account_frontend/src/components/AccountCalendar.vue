@@ -173,7 +173,7 @@
                   </div>
                   <div>
                     <p class="font-semibold text-gray-800">{{ getCategoryName(data.category_id) || data.category || '-'
-                    }}
+                      }}
                     </p>
                     <p v-if="data.keyword_name || data.keyword" class="text-sm text-gray-600">🏷️ {{ data.keyword_name
                       ||
@@ -225,9 +225,6 @@
 
     <!-- 팝업들 -->
 
-    <DetailPopup v-if="showCustomPopup" :eventDetail="eventDetail" :isEditMode="isEditMode" @close="closePopup"
-      @edit="openEditMode" @update="updateAccount" @delete="deleteAccount" @cancel-edit="cancelEdit" />
-
     <!-- 관리 모달들 -->
     <UserManager v-if="showUserManager" @close="closeUserManager" />
     <CategoryManager v-if="showCategoryManager" @close="closeCategoryManager" />
@@ -264,7 +261,6 @@ import { useCalendarStore } from '../stores/calendarStore';
 import { usePopupStore } from '../stores/popupStore';
 import { useCategoryStore } from '../stores/categoryStore';
 // import { formatDateToString } from '../utils';
-import DetailPopup from './DetailPopup.vue';
 import UserManager from './UserManager.vue';
 import CategoryManager from './CategoryManager.vue';
 import PaymentMethodManager from './PaymentMethodManager.vue';
@@ -288,7 +284,6 @@ import {
 export default {
   components: {
     FullCalendar,
-    DetailPopup,
     UserManager,
     CategoryManager,
     PaymentMethodManager,
@@ -312,7 +307,7 @@ export default {
     const calendarStore = useCalendarStore();
     const popupStore = usePopupStore();
     const categoryStore = useCategoryStore();
-    const { showCustomPopup, eventDetail, isEditMode, showAddPopup } = storeToRefs(popupStore);
+    const { showAddPopup } = storeToRefs(popupStore);
 
     const calendar = ref(null);
     const selectedDate = ref('');
@@ -547,7 +542,13 @@ export default {
       }
 
       // 개별 이벤트인 경우 상세 팝업 표시
-      popupStore.showDetailPopup(eventData);
+      // 데이터를 상세 페이지로 이동
+      router.push({
+        path: '/detail',
+        query: {
+          data: JSON.stringify(eventData)
+        }
+      });
     }
 
     // 이전 달로 이동
@@ -693,10 +694,14 @@ export default {
       router.push('/add-data');
     };
     const closeAddPopup = () => popupStore.closeAddPopup();
-    const closePopup = () => popupStore.closePopup();
-    const openEditMode = () => popupStore.openEditMode();
-    const cancelEdit = () => popupStore.closePopup();
-    const showDetailPopup = (data) => popupStore.showDetailPopup(data);
+    const showDetailPopup = (data) => {
+      router.push({
+        path: '/detail',
+        query: {
+          data: JSON.stringify(data)
+        }
+      });
+    };
 
     // 선택된 날짜로 팝업 열기 - 전체 페이지로 변경
     const openAddPopupForSelectedDate = () => {
@@ -875,9 +880,6 @@ export default {
       calendarOptions,
 
       // 팝업 상태
-      showCustomPopup,
-      eventDetail,
-      isEditMode,
       showAddPopup,
 
       // 메서드
@@ -889,9 +891,6 @@ export default {
       deleteAccount,
       openAddPopup,
       closeAddPopup,
-      closePopup,
-      openEditMode,
-      cancelEdit,
       showDetailPopup,
       openAddPopupForSelectedDate,
       formatMoney,
