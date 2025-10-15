@@ -120,8 +120,17 @@
             </div>
         </div>
 
-        <!-- 차트 영역 -->
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+        <!-- 차트 유형 선택 탭 (지출일 때만 표시) -->
+        <div v-if="selectedType === 'out'" class="mb-6">
+            <el-tabs v-model="chartViewType" class="custom-tabs">
+                <el-tab-pane label="📊 카테고리별 지출" name="category"></el-tab-pane>
+                <el-tab-pane label="💰 고정/변동 지출 분석" name="expense_type"></el-tab-pane>
+            </el-tabs>
+        </div>
+
+        <!-- 카테고리별 지출 차트 (수입일 때 항상 표시, 지출일 때는 선택 시만 표시) -->
+        <div v-if="selectedType === 'in' || (selectedType === 'out' && chartViewType === 'category')"
+            class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
             <!-- 도넛 차트 -->
             <div class="card">
                 <div class="flex items-center justify-between mb-6">
@@ -160,7 +169,7 @@
                                 <div class="flex items-center justify-between">
                                     <span class="font-medium text-gray-900">{{ category.category_name }}</span>
                                     <span class="font-bold text-gray-800">{{ formatMoney(category.total_amount)
-                                    }}원</span>
+                                        }}원</span>
                                 </div>
                                 <div class="flex items-center justify-between mt-1">
                                     <span class="text-sm text-gray-500">{{ category.count }}건</span>
@@ -181,6 +190,124 @@
                 <div v-if="sortedCategories.length === 0" class="empty-state">
                     <Folder class="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <p class="text-gray-500">해당 기간에 데이터가 없습니다</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 고정/변동 지출 분석 (지출일 때 선택 시만 표시) -->
+        <div v-if="selectedType === 'out' && chartViewType === 'expense_type'" class="mb-8">
+            <!-- 고정 vs 변동 비교 차트 -->
+            <div class="card mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">📊 고정 vs 변동 지출 비교</h2>
+                    <span class="text-sm text-gray-500">{{ statistics?.period }}</span>
+                </div>
+
+                <div class="comparison-chart-container">
+                    <Bar v-if="fixedExpenseTotal + variableExpenseTotal > 0" :data="expenseComparisonChartData"
+                        :options="expenseComparisonChartOptions" />
+                    <div v-else class="empty-chart">
+                        <BarChart class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <p class="text-gray-500">지출 데이터가 없습니다</p>
+                    </div>
+                </div>
+
+                <!-- 요약 정보 -->
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-blue-600 font-medium mb-1">📌 고정 지출</p>
+                        <p class="text-2xl font-bold text-blue-700">{{ formatMoney(fixedExpenseTotal) }}원</p>
+                        <p class="text-xs text-blue-500 mt-1">
+                            {{ fixedExpenseTotal + variableExpenseTotal > 0
+                                ? ((fixedExpenseTotal / (fixedExpenseTotal + variableExpenseTotal)) * 100).toFixed(1)
+                                : 0 }}%
+                        </p>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <p class="text-sm text-green-600 font-medium mb-1">💳 변동 지출</p>
+                        <p class="text-2xl font-bold text-green-700">{{ formatMoney(variableExpenseTotal) }}원</p>
+                        <p class="text-xs text-green-500 mt-1">
+                            {{ fixedExpenseTotal + variableExpenseTotal > 0
+                                ? ((variableExpenseTotal / (fixedExpenseTotal + variableExpenseTotal)) * 100).toFixed(1)
+                                : 0 }}%
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 카테고리별 상세 분석 -->
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">💰 카테고리별 상세 분석</h2>
+                    <span class="text-sm text-gray-500">{{ statistics?.period }}</span>
+                </div>
+
+                <!-- 고정/변동 선택 탭 -->
+                <el-tabs v-model="expenseTypeTab" class="mb-4">
+                    <el-tab-pane label="💳 변동 지출" name="variable"></el-tab-pane>
+                    <el-tab-pane label="📌 고정 지출" name="fixed"></el-tab-pane>
+                </el-tabs>
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <!-- 고정/변동 도넛 차트 -->
+                    <div>
+                        <div class="chart-container">
+                            <Doughnut v-if="expenseTypeChartData.datasets[0].data.length > 0"
+                                :key="statistics?.period + expenseTypeTab" :data="expenseTypeChartData"
+                                :options="expenseTypeChartOptions" @click="handleExpenseTypeChartClick" />
+                            <div v-else class="empty-chart">
+                                <PieChart class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <p class="text-gray-500">{{ expenseTypeTab === 'fixed' ? '고정 지출' : '변동 지출' }} 데이터가 없습니다
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 고정/변동 카테고리 리스트 -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-gray-700">
+                                {{ expenseTypeTab === 'fixed' ? '고정 지출' : '변동 지출' }} 카테고리
+                            </h3>
+                            <span class="text-sm text-gray-500">
+                                총 {{ formatMoney(expenseTypeTotal) }}원
+                            </span>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div v-for="(category, index) in expenseTypeCategories" :key="category.category_id"
+                                class="category-item cursor-pointer" @click="showExpenseTypeCategoryDetail(category)">
+                                <div class="flex items-center">
+                                    <div class="rank-badge"
+                                        :style="{ backgroundColor: getCategoryColor(category.category_name) }">
+                                        {{ index + 1 }}
+                                    </div>
+                                    <div class="ml-3 flex-1">
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-medium text-gray-900">{{ category.category_name }}</span>
+                                            <span class="font-bold text-gray-800">{{ formatMoney(category.total_amount)
+                                                }}원</span>
+                                        </div>
+                                        <div class="flex items-center justify-between mt-1">
+                                            <span class="text-sm text-gray-500">{{ category.count }}건</span>
+                                            <span class="text-sm font-medium text-red-600">
+                                                {{ category.percentage.toFixed(1) }}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="progress-bar mt-2">
+                                    <div class="progress-fill bg-red-500" :style="`width: ${category.percentage}%`">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="expenseTypeCategories.length === 0" class="empty-state">
+                            <Folder class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                            <p class="text-gray-500">{{ expenseTypeTab === 'fixed' ? '고정 지출' : '변동 지출' }} 데이터가 없습니다</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -323,19 +450,23 @@ import {
 } from 'lucide-vue-next';
 import { ElMessage } from 'element-plus';
 import BudgetUsageDisplay from './BudgetUsageDisplay.vue';
-import { Doughnut } from 'vue-chartjs';
+import { Doughnut, Bar } from 'vue-chartjs';
 import {
     Chart as ChartJS,
     ArcElement,
     Tooltip,
-    Legend
+    Legend,
+    CategoryScale,
+    LinearScale,
+    BarElement
 } from 'chart.js';
 import { useStatisticsStore } from '../stores/statisticsStore';
 import { useUserStore } from '../stores/userStore';
+import { useCategoryStore } from '../stores/categoryStore';
 import { useRouter } from 'vue-router';
 
 // Chart.js 등록
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 export default {
     name: 'StatisticsDashboard',
@@ -348,12 +479,14 @@ export default {
         Folder,
         Download,
         Doughnut,
+        Bar,
         BudgetUsageDisplay
     },
     emits: ['close', 'open-budget-manager'],
     setup() {
         const statisticsStore = useStatisticsStore();
         const userStore = useUserStore();
+        const categoryStore = useCategoryStore();
         const router = useRouter();
 
         const selectedType = ref('out');
@@ -366,6 +499,8 @@ export default {
         const loadingKeywords = ref(false);
         const selectedKeywordIndex = ref(null);
         const keywordSortOrder = ref('desc');
+        const expenseTypeTab = ref('variable'); // 고정/변동 지출 탭
+        const chartViewType = ref('category'); // 차트 뷰 타입 (category, expense_type)
 
         // 현재 주차를 계산하는 헬퍼 함수
         function getCurrentWeek() {
@@ -472,6 +607,169 @@ export default {
                     ? b.total_amount - a.total_amount
                     : a.total_amount - b.total_amount;
             });
+        });
+
+        // 고정/변동 지출 카테고리 필터링 (카테고리 정보와 매칭)
+        const expenseTypeCategories = computed(() => {
+            if (!statistics.value?.categories || !categoryStore.categories) return [];
+
+            const categories = statistics.value.categories
+                .map(category => {
+                    // category_id로 카테고리 정보 찾기
+                    const categoryInfo = categoryStore.categories.find(c => c.id === category.category_id);
+
+                    return {
+                        ...category,
+                        expense_type: categoryInfo?.expense_type || 'variable'
+                    };
+                })
+                .filter(category => category.expense_type === expenseTypeTab.value);
+
+            // 금액 기준으로 정렬
+            return categories.sort((a, b) => b.total_amount - a.total_amount);
+        });
+
+        // 고정/변동 지출 총액
+        const expenseTypeTotal = computed(() => {
+            return expenseTypeCategories.value.reduce((sum, cat) => sum + cat.total_amount, 0);
+        });
+
+        // 고정 지출 총액
+        const fixedExpenseTotal = computed(() => {
+            if (!statistics.value?.categories || !categoryStore.categories) return 0;
+
+            return statistics.value.categories
+                .filter(category => {
+                    const categoryInfo = categoryStore.categories.find(c => c.id === category.category_id);
+                    return categoryInfo?.expense_type === 'fixed';
+                })
+                .reduce((sum, cat) => sum + cat.total_amount, 0);
+        });
+
+        // 변동 지출 총액
+        const variableExpenseTotal = computed(() => {
+            if (!statistics.value?.categories || !categoryStore.categories) return 0;
+
+            return statistics.value.categories
+                .filter(category => {
+                    const categoryInfo = categoryStore.categories.find(c => c.id === category.category_id);
+                    return categoryInfo?.expense_type === 'variable';
+                })
+                .reduce((sum, cat) => sum + cat.total_amount, 0);
+        });
+
+        // 고정 vs 변동 지출 비교 차트 데이터
+        const expenseComparisonChartData = computed(() => {
+            const fixed = fixedExpenseTotal.value;
+            const variable = variableExpenseTotal.value;
+
+            return {
+                labels: ['고정 지출', '변동 지출'],
+                datasets: [{
+                    data: [fixed, variable],
+                    backgroundColor: ['#3b82f6', '#10b981'], // 파란색(고정), 초록색(변동)
+                    borderWidth: 0,
+                    barThickness: 60,
+                    maxBarThickness: 80
+                }]
+            };
+        });
+
+        // 고정 vs 변동 지출 비교 차트 옵션
+        const expenseComparisonChartOptions = computed(() => {
+            const total = fixedExpenseTotal.value + variableExpenseTotal.value;
+
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y', // 가로 막대 그래프
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const value = context.parsed.x || 0;
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${formatMoney(value)}원 (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (value) {
+                                return formatMoney(value) + '원';
+                            }
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                }
+            };
+        });
+
+        // 고정/변동 지출 차트 데이터
+        const expenseTypeChartData = computed(() => {
+            if (expenseTypeCategories.value.length === 0) {
+                return {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderWidth: 0
+                    }]
+                };
+            }
+
+            const colors = expenseTypeCategories.value.map(cat => getCategoryColor(cat.category_name));
+
+            return {
+                labels: expenseTypeCategories.value.map(cat => cat.category_name),
+                datasets: [{
+                    data: expenseTypeCategories.value.map(cat => cat.total_amount),
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            };
+        });
+
+        // 고정/변동 지출 차트 옵션
+        const expenseTypeChartOptions = computed(() => {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${label}: ${formatMoney(value)}원 (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            };
         });
 
         // 차트 데이터
@@ -809,6 +1107,54 @@ export default {
             selectedKeywordIndex.value = null;
         };
 
+        // 고정/변동 카테고리 상세 보기 (키워드 표시)
+        const showExpenseTypeCategoryDetail = async (category) => {
+            selectedCategory.value = category;
+            loadingKeywords.value = true;
+
+            try {
+                const params = {
+                    category_id: category.category_id,
+                    type: selectedPeriod.value,
+                    category: selectedType.value
+                };
+
+                // 선택된 기간에 따라 파라미터 추가
+                if (selectedPeriod.value === 'week') {
+                    params.year = selectedYear.value;
+                    params.week = selectedWeek.value;
+                } else if (selectedPeriod.value === 'month') {
+                    params.year = selectedYear.value;
+                    params.month = selectedMonth.value;
+                } else if (selectedPeriod.value === 'year') {
+                    params.year = selectedYear.value;
+                } else if (selectedPeriod.value === 'custom' && customStartDate.value && customEndDate.value) {
+                    params.start_date = customStartDate.value;
+                    params.end_date = customEndDate.value;
+                }
+
+                // 사용자가 선택된 경우에만 추가
+                if (selectedUser.value) {
+                    params.user_name = selectedUser.value;
+                }
+
+                await statisticsStore.fetchKeywordStatistics(params);
+
+                // 스크롤을 키워드 상세 영역으로 이동
+                setTimeout(() => {
+                    const keywordSection = document.querySelector('.keyword-detail-section');
+                    if (keywordSection) {
+                        keywordSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('키워드 통계 로드 오류:', error);
+                ElMessage.error('키워드 통계를 불러오는데 실패했습니다.');
+            } finally {
+                loadingKeywords.value = false;
+            }
+        };
+
         // 카테고리 상세 보기
         const showCategoryDetail = async (category) => {
             selectedCategory.value = category;
@@ -869,6 +1215,17 @@ export default {
             }
         };
 
+        // 고정/변동 지출 차트 클릭 핸들러
+        const handleExpenseTypeChartClick = (event, elements) => {
+            if (elements && elements.length > 0) {
+                const index = elements[0].index;
+                if (expenseTypeCategories.value && expenseTypeCategories.value[index]) {
+                    const category = expenseTypeCategories.value[index];
+                    showExpenseTypeCategoryDetail(category);
+                }
+            }
+        };
+
         // 데이터 내보내기 페이지로 이동
         const openExportData = () => {
             router.push('/export-data');
@@ -880,6 +1237,13 @@ export default {
                 await userStore.fetchUsers();
             } catch (error) {
                 console.error('사용자 목록 로드 오류:', error);
+            }
+
+            // 카테고리 목록 로드 (고정/변동 지출 분석에 사용)
+            try {
+                await categoryStore.loadCategories();
+            } catch (error) {
+                console.error('카테고리 목록 로드 오류:', error);
             }
 
             loadStatistics();
@@ -913,6 +1277,18 @@ export default {
             chartOptions,
             keywordChartOptions,
 
+            // 고정/변동 지출 관련
+            chartViewType,
+            expenseTypeTab,
+            expenseTypeCategories,
+            expenseTypeTotal,
+            fixedExpenseTotal,
+            variableExpenseTotal,
+            expenseComparisonChartData,
+            expenseComparisonChartOptions,
+            expenseTypeChartData,
+            expenseTypeChartOptions,
+
             // 새로운 computed 속성들
             availableYears,
             availableMonths,
@@ -938,8 +1314,10 @@ export default {
             toggleSortOrder,
             toggleKeywordSortOrder,
             showCategoryDetail,
+            showExpenseTypeCategoryDetail,
             closeKeywordDetail,
             handleChartClick,
+            handleExpenseTypeChartClick,
             openExportData,
             getCategoryColor, // 추가된 함수
 
@@ -959,6 +1337,11 @@ export default {
 <style scoped>
 .chart-container {
     height: 300px;
+    position: relative;
+}
+
+.comparison-chart-container {
+    height: 200px;
     position: relative;
 }
 
