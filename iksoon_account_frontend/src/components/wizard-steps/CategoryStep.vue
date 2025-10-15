@@ -8,13 +8,8 @@
         <div class="category-selection-container">
             <!-- 카테고리 그리드 -->
             <div class="category-grid" v-if="availableCategories.length > 0">
-                <button
-                    v-for="category in availableCategories"
-                    :key="category.id"
-                    @click="selectCategory(category)"
-                    class="category-btn"
-                    :class="{ 'selected': selectedCategoryId === category.id }"
-                >
+                <button v-for="category in availableCategories" :key="category.id" @click="selectCategory(category)"
+                    class="category-btn" :class="{ 'selected': selectedCategoryId === category.id }">
                     <div class="category-info">
                         <div class="category-name">{{ category.name }}</div>
                         <div class="category-description" v-if="category.description">
@@ -26,23 +21,10 @@
 
             <!-- 검색 가능한 선택기 (많은 카테고리가 있을 때) -->
             <div class="category-search" v-if="availableCategories.length > 12">
-                <el-select
-                    ref="categorySelectRef"
-                    v-model="selectedCategoryId"
-                    placeholder="카테고리를 검색하세요"
-                    size="large"
-                    class="category-select"
-                    :class="{ 'error': hasError }"
-                    filterable
-                    @change="handleCategoryChange"
-                >
-                    <el-option
-                        v-for="category in availableCategories"
-                        :key="category.id"
-                        :label="category.name"
-                        :value="category.id"
-                        class="category-option"
-                    >
+                <el-select ref="categorySelectRef" v-model="selectedCategoryId" placeholder="카테고리를 검색하세요" size="large"
+                    class="category-select" :class="{ 'error': hasError }" filterable @change="handleCategoryChange">
+                    <el-option v-for="category in availableCategories" :key="category.id" :label="category.name"
+                        :value="category.id" class="category-option">
                         <span>{{ category.name }}</span>
                     </el-option>
                 </el-select>
@@ -50,19 +32,6 @@
 
             <div v-if="hasError" class="error-message">
                 {{ errorMessage }}
-            </div>
-
-            <!-- 카테고리 관리 링크 -->
-            <div class="category-management">
-                <el-button 
-                    text 
-                    size="small" 
-                    @click="openCategoryManager"
-                    class="category-manage-btn"
-                >
-                    <Settings class="w-4 h-4 mr-1" />
-                    카테고리 관리
-                </el-button>
             </div>
         </div>
 
@@ -74,17 +43,16 @@
             <p class="no-categories-message">
                 {{ modelValue.type === 'out' ? '지출' : '수입' }} 카테고리가 없습니다.
             </p>
-            <el-button type="primary" @click="openCategoryManager">
-                카테고리 추가하기
-            </el-button>
+            <p class="text-sm text-gray-500 mt-2">
+                💡 달력 화면의 <strong>⚙️ 관리</strong> 버튼에서 카테고리를 추가하세요
+            </p>
         </div>
     </div>
 </template>
 
 <script>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { 
-    Settings, 
+import {
     FolderPlus
 } from 'lucide-vue-next';
 import { useCategoryStore } from '../../stores/categoryStore';
@@ -92,7 +60,6 @@ import { useCategoryStore } from '../../stores/categoryStore';
 export default {
     name: 'CategoryStep',
     components: {
-        Settings,
         FolderPlus
     },
     props: {
@@ -105,7 +72,7 @@ export default {
             default: () => ({})
         }
     },
-    emits: ['update:modelValue', 'next', 'auto-advance', 'validate', 'open-category-manager'],
+    emits: ['update:modelValue', 'next', 'auto-advance', 'validate'],
     setup(props, { emit }) {
         const categoryStore = useCategoryStore();
         const categorySelectRef = ref(null);
@@ -126,7 +93,7 @@ export default {
             selectedCategoryId.value = category.id;
             updateModelValue(category.id);
             emit('validate', 'category_id', true, '');
-            
+
             // 선택 즉시 자동 진행
             setTimeout(() => {
                 emit('auto-advance', 100);
@@ -138,7 +105,7 @@ export default {
                 selectedCategoryId.value = value;
                 updateModelValue(value);
                 emit('validate', 'category_id', true, '');
-                
+
                 // 드롭다운 선택 시 자동 진행
                 setTimeout(() => {
                     emit('auto-advance', 200);
@@ -149,16 +116,12 @@ export default {
         };
 
         const updateModelValue = (value) => {
-            const updated = { 
-                ...props.modelValue, 
+            const updated = {
+                ...props.modelValue,
                 category_id: value,
                 keyword_name: '' // 카테고리 변경 시 키워드 초기화
             };
             emit('update:modelValue', updated);
-        };
-
-        const openCategoryManager = () => {
-            emit('open-category-manager');
         };
 
         // 초기값 설정
@@ -197,8 +160,7 @@ export default {
             errorMessage,
             availableCategories,
             selectCategory,
-            handleCategoryChange,
-            openCategoryManager
+            handleCategoryChange
         };
     }
 }
@@ -325,20 +287,22 @@ export default {
 @media (max-width: 768px) {
     .category-btn {
         @apply p-3;
-        min-height: 50px; /* iOS 권장 터치 영역 */
+        min-height: 50px;
+        /* iOS 권장 터치 영역 */
     }
-    
+
     .category-name {
         @apply text-sm;
     }
-    
+
     .category-description {
         @apply text-xs;
     }
-    
+
     :deep(.category-select .el-input__inner) {
         @apply h-12 text-base;
-        font-size: 16px; /* iOS zoom 방지 */
+        font-size: 16px;
+        /* iOS zoom 방지 */
     }
 }
 
@@ -365,6 +329,7 @@ export default {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -381,9 +346,11 @@ export default {
     0% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.05);
     }
+
     100% {
         transform: scale(1);
     }

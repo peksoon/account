@@ -13,20 +13,12 @@
             <!-- 지출: 결제수단 선택 -->
             <div v-if="modelValue.type === 'out'" class="payment-methods">
                 <!-- 카테고리별 결제수단 그룹 -->
-                <div 
-                    v-for="category in validPaymentMethodCategories" 
-                    :key="category.id"
-                    class="payment-category"
-                >
+                <div v-for="category in validPaymentMethodCategories" :key="category.id" class="payment-category">
                     <h3 class="payment-category-title">{{ category.name }}</h3>
                     <div class="payment-methods-grid">
-                        <button
-                            v-for="method in category.children"
-                            :key="method.id"
-                            @click="selectPaymentMethod(method.id)"
-                            class="payment-method-btn"
-                            :class="{ 'selected': selectedPaymentMethodId === method.id }"
-                        >
+                        <button v-for="method in category.children" :key="method.id"
+                            @click="selectPaymentMethod(method.id)" class="payment-method-btn"
+                            :class="{ 'selected': selectedPaymentMethodId === method.id }">
                             <div class="payment-method-icon">
                                 <component :is="getPaymentMethodIcon(method.name)" class="w-5 h-5" />
                             </div>
@@ -42,28 +34,13 @@
 
                 <!-- 검색 가능한 선택기 (많은 결제수단이 있을 때) -->
                 <div class="payment-search" v-if="totalPaymentMethods > 12">
-                    <el-select
-                        ref="paymentSelectRef"
-                        v-model="selectedPaymentMethodId"
-                        placeholder="결제수단을 검색하세요"
-                        size="large"
-                        class="payment-select"
-                        :class="{ 'error': hasError }"
-                        filterable
-                        @change="handlePaymentMethodChange"
-                    >
-                        <el-option-group 
-                            v-for="category in validPaymentMethodCategories"
-                            :key="category.id"
-                            :label="category.name"
-                        >
-                            <el-option
-                                v-for="method in category.children"
-                                :key="method.id"
-                                :label="method.name"
-                                :value="method.id"
-                                class="payment-option"
-                            >
+                    <el-select ref="paymentSelectRef" v-model="selectedPaymentMethodId" placeholder="결제수단을 검색하세요"
+                        size="large" class="payment-select" :class="{ 'error': hasError }" filterable
+                        @change="handlePaymentMethodChange">
+                        <el-option-group v-for="category in validPaymentMethodCategories" :key="category.id"
+                            :label="category.name">
+                            <el-option v-for="method in category.children" :key="method.id" :label="method.name"
+                                :value="method.id" class="payment-option">
                                 <div class="flex items-center">
                                     <component :is="getPaymentMethodIcon(method.name)" class="w-4 h-4 mr-2" />
                                     <span>{{ method.name }}</span>
@@ -77,25 +54,11 @@
             <!-- 수입: 입금경로 선택 -->
             <div v-else class="deposit-paths">
                 <div class="deposit-input-wrapper">
-                    <el-select
-                        ref="depositSelectRef"
-                        v-model="selectedDepositPath"
-                        placeholder="입금경로를 선택하거나 입력하세요"
-                        size="large"
-                        class="deposit-select"
-                        :class="{ 'error': hasError }"
-                        filterable
-                        allow-create
-                        default-first-option
-                        @change="handleDepositPathChange"
-                    >
-                        <el-option
-                            v-for="path in depositPathOptions"
-                            :key="path.id"
-                            :label="path.label"
-                            :value="path.value"
-                            class="deposit-option"
-                        >
+                    <el-select ref="depositSelectRef" v-model="selectedDepositPath" placeholder="입금경로를 선택하거나 입력하세요"
+                        size="large" class="deposit-select" :class="{ 'error': hasError }" filterable allow-create
+                        default-first-option @change="handleDepositPathChange">
+                        <el-option v-for="path in depositPathOptions" :key="path.id" :label="path.label"
+                            :value="path.value" class="deposit-option">
                             <div class="flex items-center">
                                 <Landmark class="w-4 h-4 text-gray-500 mr-2" />
                                 <span>{{ path.label }}</span>
@@ -108,12 +71,8 @@
                 <div class="quick-deposits" v-if="recentDepositPaths.length > 0 && !selectedDepositPath">
                     <p class="quick-deposits-label">최근 사용한 입금경로</p>
                     <div class="quick-deposits-grid">
-                        <button
-                            v-for="path in recentDepositPaths"
-                            :key="path.value"
-                            @click="selectDepositPath(path.value)"
-                            class="quick-deposit-btn"
-                        >
+                        <button v-for="path in recentDepositPaths" :key="path.value"
+                            @click="selectDepositPath(path.value)" class="quick-deposit-btn">
                             <Landmark class="w-4 h-4 mr-2" />
                             {{ path.label }}
                         </button>
@@ -124,42 +83,17 @@
             <div v-if="hasError" class="error-message">
                 {{ errorMessage }}
             </div>
-
-            <!-- 관리 링크 -->
-            <div class="management-links">
-                <el-button 
-                    text 
-                    size="small" 
-                    @click="openPaymentMethodManager"
-                    class="manage-btn"
-                    v-if="modelValue.type === 'out'"
-                >
-                    <Settings class="w-4 h-4 mr-1" />
-                    결제수단 관리
-                </el-button>
-                <el-button 
-                    text 
-                    size="small" 
-                    @click="openDepositPathManager"
-                    class="manage-btn"
-                    v-else
-                >
-                    <Settings class="w-4 h-4 mr-1" />
-                    입금경로 관리
-                </el-button>
-            </div>
         </div>
     </div>
 </template>
 
 <script>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { 
-    CreditCard, 
-    Smartphone, 
-    Banknote, 
-    Landmark, 
-    Settings,
+import {
+    CreditCard,
+    Smartphone,
+    Banknote,
+    Landmark,
     Wallet,
     Building2,
     ArrowRightLeft
@@ -174,7 +108,6 @@ export default {
         Smartphone,
         Banknote,
         Landmark,
-        Settings,
         Wallet,
         Building2,
         ArrowRightLeft
@@ -189,7 +122,7 @@ export default {
             default: () => ({})
         }
     },
-    emits: ['update:modelValue', 'next', 'auto-advance', 'validate', 'open-payment-method-manager', 'open-deposit-path-manager'],
+    emits: ['update:modelValue', 'next', 'auto-advance', 'validate'],
     setup(props, { emit }) {
         const paymentMethodStore = usePaymentMethodStore();
         const depositPathStore = useDepositPathStore();
@@ -221,7 +154,7 @@ export default {
         });
 
         const validPaymentMethodCategories = computed(() => {
-            return paymentMethodCategories.value.filter(category => 
+            return paymentMethodCategories.value.filter(category =>
                 category.children && category.children.length > 0
             );
         });
@@ -269,7 +202,7 @@ export default {
             selectedPaymentMethodId.value = methodId;
             updateModelValue({ payment_method_id: methodId });
             emit('validate', 'payment_method_id', true, '');
-            
+
             // 선택 즉시 자동 진행
             setTimeout(() => {
                 emit('auto-advance', 100);
@@ -281,7 +214,7 @@ export default {
                 selectedPaymentMethodId.value = value;
                 updateModelValue({ payment_method_id: value });
                 emit('validate', 'payment_method_id', true, '');
-                
+
                 setTimeout(() => {
                     emit('auto-advance', 200);
                 }, 100);
@@ -300,7 +233,7 @@ export default {
                 selectedDepositPath.value = value;
                 updateModelValue({ deposit_path: value });
                 emit('validate', 'deposit_path', true, '');
-                
+
                 setTimeout(() => {
                     emit('auto-advance', 100);
                 }, 50);
@@ -312,14 +245,6 @@ export default {
         const updateModelValue = (updates) => {
             const updated = { ...props.modelValue, ...updates };
             emit('update:modelValue', updated);
-        };
-
-        const openPaymentMethodManager = () => {
-            emit('open-payment-method-manager');
-        };
-
-        const openDepositPathManager = () => {
-            emit('open-deposit-path-manager');
         };
 
         // 초기값 설정
@@ -375,9 +300,7 @@ export default {
             selectPaymentMethod,
             handlePaymentMethodChange,
             selectDepositPath,
-            handleDepositPathChange,
-            openPaymentMethodManager,
-            openDepositPathManager
+            handleDepositPathChange
         };
     }
 }
@@ -535,30 +458,31 @@ export default {
     .payment-methods-grid {
         @apply grid-cols-1 gap-4;
     }
-    
+
     .payment-method-btn {
         @apply p-4;
         min-height: 60px;
     }
-    
+
     .payment-method-icon {
         @apply w-10 h-10 mr-3;
     }
-    
+
     .payment-method-name {
         @apply text-base;
     }
-    
+
     :deep(.payment-select .el-input__inner),
     :deep(.deposit-select .el-input__inner) {
         @apply h-12 text-base;
-        font-size: 16px; /* iOS zoom 방지 */
+        font-size: 16px;
+        /* iOS zoom 방지 */
     }
-    
+
     .quick-deposits-grid {
         @apply grid-cols-1 gap-3;
     }
-    
+
     .quick-deposit-btn {
         @apply px-4 py-3 text-base;
         min-height: 44px;
@@ -597,6 +521,7 @@ export default {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -612,9 +537,11 @@ export default {
     0% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.05);
     }
+
     100% {
         transform: scale(1);
     }

@@ -8,26 +8,11 @@
         <div class="user-selection-container">
             <!-- 사용자 검색/선택 -->
             <div class="user-input-wrapper">
-                <el-select
-                    ref="userSelectRef"
-                    v-model="selectedUser"
-                    placeholder="사용자를 선택하거나 입력하세요"
-                    size="large"
-                    class="user-select"
-                    :class="{ 'error': hasError }"
-                    filterable
-                    allow-create
-                    default-first-option
-                    @change="handleUserChange"
-                    @visible-change="handleDropdownToggle"
-                >
-                    <el-option
-                        v-for="user in userOptions"
-                        :key="user.id"
-                        :label="user.label"
-                        :value="user.value"
-                        class="user-option"
-                    >
+                <el-select ref="userSelectRef" v-model="selectedUser" placeholder="사용자를 선택하거나 입력하세요" size="large"
+                    class="user-select" :class="{ 'error': hasError }" filterable allow-create default-first-option
+                    @change="handleUserChange" @visible-change="handleDropdownToggle">
+                    <el-option v-for="user in userOptions" :key="user.id" :label="user.label" :value="user.value"
+                        class="user-option">
                         <div class="flex items-center justify-between w-full">
                             <div class="flex items-center">
                                 <User class="w-4 h-4 text-gray-500 mr-2" />
@@ -39,7 +24,7 @@
                         </div>
                     </el-option>
                 </el-select>
-                
+
                 <div v-if="hasError" class="error-message">
                     {{ errorMessage }}
                 </div>
@@ -49,13 +34,8 @@
             <div class="all-users" v-if="allUsers.length > 0 && !selectedUser">
                 <p class="all-users-label">사용자 목록</p>
                 <div class="all-users-grid">
-                    <button
-                        v-for="user in allUsers"
-                        :key="user.value"
-                        @click="selectUser(user.value)"
-                        class="user-btn"
-                        :class="{ 'recent': user.isRecent }"
-                    >
+                    <button v-for="user in allUsers" :key="user.value" @click="selectUser(user.value)" class="user-btn"
+                        :class="{ 'recent': user.isRecent }">
                         <User class="w-4 h-4 mr-2" />
                         {{ user.label }}
                         <div v-if="user.isRecent" class="recent-badge">최근</div>
@@ -63,32 +43,19 @@
                 </div>
             </div>
 
-            <!-- 사용자 관리 링크 -->
-            <div class="user-management">
-                <el-button 
-                    text 
-                    size="small" 
-                    @click="openUserManager"
-                    class="user-manage-btn"
-                >
-                    <Settings class="w-4 h-4 mr-1" />
-                    사용자 관리
-                </el-button>
-            </div>
         </div>
     </div>
 </template>
 
 <script>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { User, Settings } from 'lucide-vue-next';
+import { User } from 'lucide-vue-next';
 import { useUserStore } from '../../stores/userStore';
 
 export default {
     name: 'UserStep',
     components: {
-        User,
-        Settings
+        User
     },
     props: {
         modelValue: {
@@ -100,7 +67,7 @@ export default {
             default: () => ({})
         }
     },
-    emits: ['update:modelValue', 'next', 'auto-advance', 'validate', 'open-user-manager'],
+    emits: ['update:modelValue', 'next', 'auto-advance', 'validate'],
     setup(props, { emit }) {
         const userStore = useUserStore();
         const userSelectRef = ref(null);
@@ -139,7 +106,7 @@ export default {
                 selectedUser.value = value;
                 updateModelValue(value);
                 emit('validate', 'user', true, '');
-                
+
                 // 선택 즉시 자동 진행
                 setTimeout(() => {
                     emit('auto-advance', 100);
@@ -168,10 +135,6 @@ export default {
             emit('update:modelValue', updated);
         };
 
-        const openUserManager = () => {
-            emit('open-user-manager');
-        };
-
         // 초기값 설정
         watch(() => props.modelValue.user, (newValue) => {
             if (newValue !== selectedUser.value) {
@@ -198,8 +161,7 @@ export default {
             allUsers,
             handleUserChange,
             handleDropdownToggle,
-            selectUser,
-            openUserManager
+            selectUser
         };
     }
 }
@@ -333,36 +295,39 @@ export default {
     .step-title {
         @apply text-xl;
     }
-    
+
     .step-description {
         @apply text-sm;
     }
-    
+
     :deep(.user-select .el-input__inner) {
         @apply h-12 text-base;
-        font-size: 16px; /* iOS zoom 방지 */
+        font-size: 16px;
+        /* iOS zoom 방지 */
     }
-    
+
     .all-users-grid {
         @apply grid-cols-1 gap-3;
     }
-    
+
     .user-btn {
         @apply px-4 py-4 text-base;
-        min-height: 44px; /* iOS 권장 터치 영역 */
+        min-height: 44px;
+        /* iOS 권장 터치 영역 */
     }
-    
+
     .recent-badge {
         @apply text-xs px-1 py-0.5;
     }
-    
+
     .quick-users-grid {
         @apply grid-cols-1 gap-3;
     }
-    
+
     .quick-user-btn {
         @apply px-4 py-4 text-sm;
-        min-height: 44px; /* iOS 권장 터치 영역 */
+        min-height: 44px;
+        /* iOS 권장 터치 영역 */
     }
 }
 
@@ -406,6 +371,7 @@ export default {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);

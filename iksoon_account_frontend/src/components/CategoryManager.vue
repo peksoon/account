@@ -260,39 +260,23 @@ export default {
           return;
         }
 
-
-
-        // 카테고리가 사용 중인 경우 강제 삭제 옵션 제공
+        // 삭제 실패 시 명확한 안내 메시지 표시
         if (error.response?.data?.message &&
           error.response.data.message.includes('사용하는 데이터가 존재')) {
-          try {
-            const forceResult = await ElMessageBox.confirm(
-              `'${category.name}' 카테고리가 사용 중입니다.\n강제로 삭제하시겠습니까? (기존 가계부 데이터는 유지됩니다)`,
-              '강제 삭제 확인',
-              {
-                confirmButtonText: '강제 삭제',
-                cancelButtonText: '취소',
-                type: 'error'
-              }
-            );
-
-            if (forceResult === 'confirm') {
-              loading.value = true;
-              await categoryStore.forceDeleteCategory(category.id);
-              ElMessage.success('카테고리가 강제 삭제되었습니다');
+          await ElMessageBox.alert(
+            `❌ 카테고리 삭제 불가\n\n'${category.name}' 카테고리에 연결된 지출/수입 데이터 또는 키워드가 존재합니다.\n\n✅ 삭제 방법:\n1. 해당 카테고리를 사용하는 지출/수입 데이터를 다른 카테고리로 변경하거나 삭제\n2. 해당 카테고리의 키워드를 모두 삭제\n3. 다시 카테고리 삭제 시도\n\n💡 팁: 달력 화면의 검색 기능으로 해당 카테고리 사용 내역을 확인할 수 있습니다.`,
+            '카테고리 삭제 불가',
+            {
+              confirmButtonText: '확인',
+              type: 'warning'
             }
-          } catch (forceError) {
-            if (forceError === 'cancel') {
-              return;
-            }
-            console.error('카테고리 강제 삭제 오류:', forceError);
-            ElMessage.error('카테고리 강제 삭제 중 오류가 발생했습니다');
-          }
+          );
         } else {
+          // 일반 삭제 실패
           if (error.response?.data?.message) {
-            ElMessage.error(error.response.data.message);
+            ElMessage.error(`삭제 실패: ${error.response.data.message}`);
           } else {
-            ElMessage.error('카테고리 삭제 중 오류가 발생했습니다');
+            ElMessage.error('카테고리 삭제 중 오류가 발생했습니다. 관련 지출/수입 데이터와 키워드가 존재하는지 확인해주세요.');
           }
         }
       } finally {

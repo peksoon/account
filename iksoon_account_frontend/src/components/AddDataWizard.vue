@@ -72,11 +72,7 @@
                 <div class="wizard-layout" v-if="!isMobile">
                     <div class="step-content">
                         <component :is="currentStepComponent" v-model="formData" :errors="errors" @next="handleNext"
-                            @auto-advance="handleAutoAdvance" @validate="handleValidate"
-                            @open-category-manager="openCategoryManager"
-                            @open-payment-method-manager="openPaymentMethodManager"
-                            @open-deposit-path-manager="openDepositPathManager"
-                            @open-keyword-manager="openKeywordManager" @open-user-manager="openUserManager" />
+                            @auto-advance="handleAutoAdvance" @validate="handleValidate" />
                     </div>
                     <div class="summary-panel">
                         <SummaryPanel :data="formData" :current-step="currentStep" @jump-to-step="jumpToStep" />
@@ -86,11 +82,7 @@
                 <!-- Mobile 레이아웃 -->
                 <div class="mobile-step-content" v-else>
                     <component :is="currentStepComponent" v-model="formData" :errors="errors" @next="handleNext"
-                        @auto-advance="handleAutoAdvance" @validate="handleValidate"
-                        @open-category-manager="openCategoryManager"
-                        @open-payment-method-manager="openPaymentMethodManager"
-                        @open-deposit-path-manager="openDepositPathManager" @open-keyword-manager="openKeywordManager"
-                        @open-user-manager="openUserManager" />
+                        @auto-advance="handleAutoAdvance" @validate="handleValidate" />
                 </div>
             </div>
 
@@ -130,12 +122,6 @@
             :expense-keyword="budgetAlertData.expenseKeyword" @close="closeBudgetAlert"
             @open-budget-management="openBudgetManager" />
 
-        <!-- 관리 모달들 -->
-        <CategoryManager v-if="showCategoryManager" @close="closeCategoryManager" />
-        <PaymentMethodManager v-if="showPaymentMethodManager" @close="closePaymentMethodManager" />
-        <DepositPathManager v-if="showDepositPathManager" @close="closeDepositPathManager" />
-        <KeywordManager v-if="showKeywordManager" :category-id="keywordManagerCategoryId" @close="closeKeywordManager" />
-        <UserManager v-if="showUserManager" @close="closeUserManager" />
     </div>
 </template>
 

@@ -11,21 +11,10 @@
         <div class="keyword-input-container">
             <!-- 키워드 입력 -->
             <div class="keyword-input-wrapper">
-                <el-autocomplete
-                    ref="keywordInputRef"
-                    v-model="keywordInput"
-                    :fetch-suggestions="fetchSuggestions"
-                    placeholder="키워드를 입력하세요"
-                    size="large"
-                    class="keyword-input"
-                    :class="{ 'error': hasError }"
-                    clearable
-                    @select="handleKeywordSelect"
-                    @input="handleKeywordInput"
-                    @keydown="handleKeydown"
-                    @clear="handleClear"
-                    @blur="handleBlur"
-                >
+                <el-autocomplete ref="keywordInputRef" v-model="keywordInput" :fetch-suggestions="fetchSuggestions"
+                    placeholder="키워드를 입력하세요" size="large" class="keyword-input" :class="{ 'error': hasError }" clearable
+                    @select="handleKeywordSelect" @input="handleKeywordInput" @keydown="handleKeydown"
+                    @clear="handleClear" @blur="handleBlur">
                     <template #default="{ item }">
                         <div class="flex items-center justify-between w-full">
                             <div class="flex items-center">
@@ -63,30 +52,13 @@
             <div class="recent-keywords" v-if="recentKeywords.length > 0 && !currentKeyword">
                 <p class="recent-keywords-label">최근 사용한 키워드 (상위 10개)</p>
                 <div class="recent-keywords-grid">
-                    <button
-                        v-for="keyword in recentKeywords"
-                        :key="keyword.id"
-                        @click="selectKeyword(keyword.name)"
-                        class="recent-keyword-btn"
-                    >
+                    <button v-for="keyword in recentKeywords" :key="keyword.id" @click="selectKeyword(keyword.name)"
+                        class="recent-keyword-btn">
                         <Tag class="w-4 h-4 mr-2" />
                         {{ keyword.name }}
                         <span class="keyword-count">{{ keyword.usage_count }}</span>
                     </button>
                 </div>
-            </div>
-
-            <!-- 키워드 관리 링크 -->
-            <div class="keyword-management">
-                <el-button 
-                    text 
-                    size="small" 
-                    @click="openKeywordManager"
-                    class="keyword-manage-btn"
-                >
-                    <Settings class="w-4 h-4 mr-1" />
-                    키워드 관리
-                </el-button>
             </div>
         </div>
     </div>
@@ -94,15 +66,14 @@
 
 <script>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { Tag, X, Settings } from 'lucide-vue-next';
+import { Tag, X } from 'lucide-vue-next';
 import { useKeywordStore } from '../../stores/keywordStore';
 
 export default {
     name: 'KeywordStep',
     components: {
         Tag,
-        X,
-        Settings
+        X
     },
     props: {
         modelValue: {
@@ -114,7 +85,7 @@ export default {
             default: () => ({})
         }
     },
-    emits: ['update:modelValue', 'next', 'auto-advance', 'validate', 'open-keyword-manager'],
+    emits: ['update:modelValue', 'next', 'auto-advance', 'validate'],
     setup(props, { emit }) {
         const keywordStore = useKeywordStore();
         const keywordInputRef = ref(null);
@@ -146,8 +117,8 @@ export default {
             try {
                 // 백엔드 API에서 키워드 추천을 가져옴
                 const suggestions = await keywordStore.getKeywordSuggestions(
-                    props.modelValue.category_id, 
-                    (queryString || '').trim(), 
+                    props.modelValue.category_id,
+                    (queryString || '').trim(),
                     20 // 자동완성에서는 더 많은 항목 제공
                 );
                 callback(suggestions);
@@ -156,7 +127,7 @@ export default {
                 // 실패 시 로컬 키워드에서 필터링
                 const keywords = keywordStore.getKeywordsByCategory(props.modelValue.category_id);
                 const query = (queryString || '').trim();
-                
+
                 if (!query) {
                     // 빈 쿼리일 때는 최근 사용 순으로 정렬하여 10개만 표시
                     const suggestions = keywords
@@ -166,7 +137,7 @@ export default {
                 } else {
                     // 쿼리가 있을 때는 전체에서 필터링 (최대 20개)
                     const suggestions = keywords
-                        .filter(keyword => 
+                        .filter(keyword =>
                             keyword.name && keyword.name.toLowerCase().includes(query.toLowerCase())
                         )
                         .sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0))
@@ -179,10 +150,10 @@ export default {
         // 이벤트 핸들러들
         const handleKeywordInput = (value) => {
             keywordInput.value = value || '';
-            
+
             // 입력 중일 때는 자동 진행 타이머 취소
             clearAutoAdvanceTimer();
-            
+
             if (value && value.trim()) {
                 // 유효성 검사 통과
                 emit('validate', 'keyword_name', true, '');
@@ -231,7 +202,7 @@ export default {
                 updateModelValue(keyword);
                 keywordInput.value = ''; // 입력 필드 클리어
                 emit('validate', 'keyword_name', true, '');
-                
+
                 // 키워드 확정 후 자동 진행
                 clearAutoAdvanceTimer();
                 autoAdvanceTimer.value = setTimeout(() => {
@@ -243,7 +214,7 @@ export default {
         const removeKeyword = () => {
             updateModelValue('');
             emit('validate', 'keyword_name', false, '키워드를 입력해주세요');
-            
+
             // 포커스를 입력 필드로 이동
             nextTick(() => {
                 if (keywordInputRef.value) {
@@ -264,10 +235,6 @@ export default {
             }
         };
 
-        const openKeywordManager = () => {
-            emit('open-keyword-manager', props.modelValue.category_id);
-        };
-
         // 초기값 설정
         watch(() => props.modelValue.keyword_name, (newValue) => {
             if (!newValue && keywordInput.value) {
@@ -279,7 +246,7 @@ export default {
         watch(() => props.modelValue.category_id, async (newCategoryId) => {
             keywordInput.value = '';
             updateModelValue('');
-            
+
             // 새 카테고리의 키워드 목록 로드
             if (newCategoryId) {
                 try {
@@ -300,7 +267,7 @@ export default {
                     console.error('초기 키워드 로드 실패:', error);
                 }
             }
-            
+
             nextTick(() => {
                 if (keywordInputRef.value) {
                     keywordInputRef.value.focus();
@@ -322,8 +289,7 @@ export default {
             handleBlur,
             handleClear,
             selectKeyword,
-            removeKeyword,
-            openKeywordManager
+            removeKeyword
         };
     }
 }
@@ -434,18 +400,20 @@ export default {
 @media (max-width: 768px) {
     :deep(.keyword-input .el-input__inner) {
         @apply h-12 text-base;
-        font-size: 16px; /* iOS zoom 방지 */
+        font-size: 16px;
+        /* iOS zoom 방지 */
     }
-    
+
     .recent-keywords-grid {
         @apply grid-cols-1 gap-3;
     }
-    
+
     .recent-keyword-btn {
         @apply px-4 py-3 text-base justify-start;
-        min-height: 44px; /* iOS 권장 터치 영역 */
+        min-height: 44px;
+        /* iOS 권장 터치 영역 */
     }
-    
+
     .keyword-count {
         @apply ml-auto;
     }
@@ -499,6 +467,7 @@ export default {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -515,6 +484,7 @@ export default {
         opacity: 0;
         transform: scale(0.8) translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: scale(1) translateY(0);

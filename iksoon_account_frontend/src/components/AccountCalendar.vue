@@ -45,6 +45,10 @@
 
                 <!-- 두 번째 줄: 분석 및 관리 기능 -->
                 <div class="flex flex-wrap gap-2 justify-center md:justify-end">
+                  <el-button @click="openManagementPage" type="success" :size="isMobile ? 'small' : 'default'"
+                    class="flex-shrink-0">
+                    {{ isMobile ? '⚙️ 관리' : '⚙️ 관리' }}
+                  </el-button>
                   <el-button @click="openStatistics" type="info" :size="isMobile ? 'small' : 'default'"
                     class="flex-shrink-0">
                     <BarChart :class="isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'" />
@@ -781,6 +785,10 @@ export default {
       router.push('/keyword-search');
     };
 
+    const openManagementPage = () => {
+      router.push('/management');
+    };
+
     const goBackToCalendar = () => {
       viewMode.value = 'calendar';
     };
@@ -935,6 +943,7 @@ export default {
       openStatistics,
       closeStatistics,
       openKeywordSearch,
+      openManagementPage,
       goBackToCalendar,
       showStatistics,
       viewMode,
