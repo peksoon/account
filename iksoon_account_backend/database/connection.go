@@ -80,8 +80,25 @@ func InitDB(dbPath string) (*DB, error) {
 
 // 테이블 생성 메서드들
 
+// tableExists 테이블 존재 여부 확인 헬퍼 함수
+func (db *DB) tableExists(tableName string) (bool, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`
+	err := db.Conn.QueryRow(query, tableName).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // 사용자 테이블 생성
 func (db *DB) createUserTable() error {
+	// 테이블이 이미 존재하는지 확인
+	exists, err := db.tableExists("users")
+	if err != nil {
+		return fmt.Errorf("테이블 존재 여부 확인 오류: %v", err)
+	}
+
 	createUserTable := `
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,17 +109,25 @@ func (db *DB) createUserTable() error {
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );`
 
-	_, err := db.Conn.Exec(createUserTable)
+	_, err = db.Conn.Exec(createUserTable)
 	if err != nil {
 		return fmt.Errorf("사용자 테이블 생성 오류: %v", err)
 	}
 
-	// 기본 사용자 데이터 삽입
-	db.insertDefaultUsers()
+	// 테이블이 새로 생성된 경우에만 기본 데이터 삽입
+	if !exists {
+		db.insertDefaultUsers()
+	}
 	return nil
 }
 
 func (db *DB) createCategoryTable() error {
+	// 테이블이 이미 존재하는지 확인
+	exists, err := db.tableExists("categories")
+	if err != nil {
+		return fmt.Errorf("테이블 존재 여부 확인 오류: %v", err)
+	}
+
 	createCategoryTable := `
     CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -114,7 +139,7 @@ func (db *DB) createCategoryTable() error {
         UNIQUE(name, type)
     );`
 
-	_, err := db.Conn.Exec(createCategoryTable)
+	_, err = db.Conn.Exec(createCategoryTable)
 	if err != nil {
 		return fmt.Errorf("카테고리 테이블 생성 오류: %v", err)
 	}
@@ -122,8 +147,10 @@ func (db *DB) createCategoryTable() error {
 	// 기존 테이블에 is_active 컬럼 추가 (마이그레이션)
 	db.addCategoryIsActiveColumn()
 
-	// 기본 카테고리 데이터 삽입
-	db.insertDefaultCategories()
+	// 테이블이 새로 생성된 경우에만 기본 데이터 삽입
+	if !exists {
+		db.insertDefaultCategories()
+	}
 	return nil
 }
 
@@ -153,6 +180,12 @@ func (db *DB) createKeywordTable() error {
 }
 
 func (db *DB) createPaymentMethodTable() error {
+	// 테이블이 이미 존재하는지 확인
+	exists, err := db.tableExists("payment_methods")
+	if err != nil {
+		return fmt.Errorf("테이블 존재 여부 확인 오류: %v", err)
+	}
+
 	createPaymentMethodTable := `
     CREATE TABLE IF NOT EXISTS payment_methods (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -165,17 +198,25 @@ func (db *DB) createPaymentMethodTable() error {
         UNIQUE(name, parent_id)
     );`
 
-	_, err := db.Conn.Exec(createPaymentMethodTable)
+	_, err = db.Conn.Exec(createPaymentMethodTable)
 	if err != nil {
 		return fmt.Errorf("결제수단 테이블 생성 오류: %v", err)
 	}
 
-	// 기본 결제수단 데이터 삽입
-	db.insertDefaultPaymentMethods()
+	// 테이블이 새로 생성된 경우에만 기본 데이터 삽입
+	if !exists {
+		db.insertDefaultPaymentMethods()
+	}
 	return nil
 }
 
 func (db *DB) createDepositPathTable() error {
+	// 테이블이 이미 존재하는지 확인
+	exists, err := db.tableExists("deposit_paths")
+	if err != nil {
+		return fmt.Errorf("테이블 존재 여부 확인 오류: %v", err)
+	}
+
 	createDepositPathTable := `
     CREATE TABLE IF NOT EXISTS deposit_paths (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -185,13 +226,15 @@ func (db *DB) createDepositPathTable() error {
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );`
 
-	_, err := db.Conn.Exec(createDepositPathTable)
+	_, err = db.Conn.Exec(createDepositPathTable)
 	if err != nil {
 		return fmt.Errorf("입금경로 테이블 생성 오류: %v", err)
 	}
 
-	// 기본 입금경로 데이터 삽입
-	db.insertDefaultDepositPaths()
+	// 테이블이 새로 생성된 경우에만 기본 데이터 삽입
+	if !exists {
+		db.insertDefaultDepositPaths()
+	}
 	return nil
 }
 
