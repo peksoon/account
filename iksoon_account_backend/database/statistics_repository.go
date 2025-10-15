@@ -303,3 +303,74 @@ func (db *DB) GetTopCategories(startDate, endDate, accountType string, limit int
 
 	return statistics, nil
 }
+
+// GetPaymentMethodStatistics 결제수단별 통계 조회 (지출만)
+func (db *DB) GetPaymentMethodStatistics(startDate, endDate string) ([]models.PaymentMethodStatistics, error) {
+	query := `
+	SELECT 
+		pm.id as payment_method_id,
+		pm.name as payment_method_name,
+		COALESCE(SUM(oa.money), 0) as total_amount,
+		COALESCE(COUNT(oa.uuid), 0) as count
+	FROM payment_methods pm
+	LEFT JOIN out_account_data oa ON pm.id = oa.payment_method_id 
+		AND date(oa.date) >= ? AND date(oa.date) <= ?
+	WHERE pm.is_active = 1
+	GROUP BY pm.id, pm.name
+	HAVING total_amount > 0
+	ORDER BY total_amount DESC`
+
+	rows, err := db.Conn.Query(query, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("결제수단 통계 조회 오류: %v", err)
+	}
+	defer rows.Close()
+
+	var statistics []models.PaymentMethodStatistics
+	for rows.Next() {
+		var stat models.PaymentMethodStatistics
+		err := rows.Scan(&stat.PaymentMethodID, &stat.PaymentMethodName, &stat.TotalAmount, &stat.Count)
+		if err != nil {
+			return nil, fmt.Errorf("결제수단 통계 데이터 읽기 오류: %v", err)
+		}
+		statistics = append(statistics, stat)
+	}
+
+	return statistics, nil
+}
+
+// GetPaymentMethodCategoryStatistics 결제수단별 카테고리 통계 조회
+func (db *DB) GetPaymentMethodCategoryStatistics(paymentMethodID int, startDate, endDate string) ([]models.CategoryStatistics, error) {
+	query := `
+	SELECT 
+		c.id as category_id,
+		c.name as category_name,
+		COALESCE(SUM(oa.money), 0) as total_amount,
+		COALESCE(COUNT(oa.uuid), 0) as count
+	FROM categories c
+	LEFT JOIN out_account_data oa ON c.id = oa.category_id 
+		AND oa.payment_method_id = ?
+		AND date(oa.date) >= ? AND date(oa.date) <= ?
+	WHERE c.type = 'out'
+	GROUP BY c.id, c.name
+	HAVING total_amount > 0
+	ORDER BY total_amount DESC`
+
+	rows, err := db.Conn.Query(query, paymentMethodID, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("결제수단별 카테고리 통계 조회 오류: %v", err)
+	}
+	defer rows.Close()
+
+	var statistics []models.CategoryStatistics
+	for rows.Next() {
+		var stat models.CategoryStatistics
+		err := rows.Scan(&stat.CategoryID, &stat.CategoryName, &stat.TotalAmount, &stat.Count)
+		if err != nil {
+			return nil, fmt.Errorf("결제수단별 카테고리 통계 데이터 읽기 오류: %v", err)
+		}
+		statistics = append(statistics, stat)
+	}
+
+	return statistics, nil
+}

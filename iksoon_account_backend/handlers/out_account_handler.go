@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ type OutAccountRepository interface {
 	GetOutAccountsByDate(date string) ([]models.OutAccount, error)
 	GetOutAccountsForMonth(year, month string) ([]models.OutAccount, error)
 	GetOutAccountsByDateRange(startDate, endDate string) ([]models.OutAccount, error)
+	GetOutAccountsByPaymentMethod(paymentMethodID int, startDate, endDate string) ([]models.OutAccount, error)
 	SearchOutAccountsByKeyword(keyword, startDate, endDate string) ([]models.OutAccount, error)
 	UpdateOutAccount(uuid, date, user string, money, categoryID int, keywordID *int, paymentMethodID int, memo string) error
 	DeleteOutAccount(uuid string) error
@@ -444,4 +446,133 @@ func (h *OutAccountHandler) validateOutAccountReferences(categoryID, paymentMeth
 
 	utils.Debug("외래키 검증 성공: categoryID=%d, paymentMethodID=%d", categoryID, paymentMethodID)
 	return nil
+}
+
+// GetOutAccountsByPaymentMethodHandler 결제수단별 지출 내역 조회 핸들러
+func (h *OutAccountHandler) GetOutAccountsByPaymentMethodHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.SendError(w, apiErrors.ErrInvalidRequest.WithMessage("지원되지 않는 메소드입니다"))
+		return
+	}
+
+	// 쿼리 파라미터 파싱
+	paymentMethodIDStr := r.URL.Query().Get("payment_method_id")
+	statisticsType := r.URL.Query().Get("type")
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+	yearStr := r.URL.Query().Get("year")
+	monthStr := r.URL.Query().Get("month")
+	weekStr := r.URL.Query().Get("week")
+
+	if paymentMethodIDStr == "" {
+		utils.SendError(w, apiErrors.ErrMissingRequired.WithMessage("결제수단 ID가 필요합니다"))
+		return
+	}
+
+	paymentMethodID, ok := utils.ParseIDFromQuery(w, r, "payment_method_id")
+	if !ok {
+		return
+	}
+
+	// 기본값 설정
+	if statisticsType == "" {
+		statisticsType = "month"
+	}
+
+	// 날짜 범위 계산 (statistics_handler의 calculateDateRange 로직과 동일)
+	now := time.Now()
+	var start, end time.Time
+
+	switch statisticsType {
+	case "week":
+		// 주간 통계
+		if yearStr != "" && weekStr != "" {
+			year, err := strconv.Atoi(yearStr)
+			if err == nil {
+				week, err := strconv.Atoi(weekStr)
+				if err == nil && week >= 1 && week <= 53 {
+					jan1 := time.Date(year, 1, 1, 0, 0, 0, 0, now.Location())
+					jan1Weekday := int(jan1.Weekday())
+					if jan1Weekday == 0 {
+						jan1Weekday = 7
+					}
+					daysToFirstMonday := 8 - jan1Weekday
+					if jan1Weekday == 1 {
+						daysToFirstMonday = 0
+					}
+					firstMonday := jan1.AddDate(0, 0, daysToFirstMonday)
+					start = firstMonday.AddDate(0, 0, (week-1)*7)
+					end = start.AddDate(0, 0, 6)
+				}
+			}
+		}
+		if start.IsZero() {
+			start = now.AddDate(0, 0, -int(now.Weekday())+1)
+			end = start.AddDate(0, 0, 6)
+		}
+	case "month":
+		// 월간 통계
+		if yearStr != "" && monthStr != "" {
+			year, err := strconv.Atoi(yearStr)
+			if err == nil {
+				month, err := strconv.Atoi(monthStr)
+				if err == nil && month >= 1 && month <= 12 {
+					start = time.Date(year, time.Month(month), 1, 0, 0, 0, 0, now.Location())
+					end = start.AddDate(0, 1, -1)
+				}
+			}
+		}
+		if start.IsZero() {
+			start = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+			end = start.AddDate(0, 1, -1)
+		}
+	case "year":
+		// 연간 통계
+		if yearStr != "" {
+			year, err := strconv.Atoi(yearStr)
+			if err == nil {
+				start = time.Date(year, 1, 1, 0, 0, 0, 0, now.Location())
+				end = time.Date(year, 12, 31, 23, 59, 59, 0, now.Location())
+			}
+		}
+		if start.IsZero() {
+			start = time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
+			end = time.Date(now.Year(), 12, 31, 23, 59, 59, 0, now.Location())
+		}
+	case "custom":
+		// 커스텀 기간
+		if startDate != "" && endDate != "" {
+			parsedStart, err1 := utils.ParseDateTimeKST(startDate)
+			parsedEnd, err2 := utils.ParseDateTimeKST(endDate)
+			if err1 == nil && err2 == nil {
+				start = parsedStart
+				end = parsedEnd
+			}
+		}
+	default:
+		start = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		end = start.AddDate(0, 1, -1)
+	}
+
+	// 날짜 포맷팅
+	calculatedStartDate := utils.FormatDateKST(start)
+	calculatedEndDate := utils.FormatDateKST(end)
+
+	// 지출 내역 조회
+	accounts, err := h.DB.GetOutAccountsByPaymentMethod(paymentMethodID, calculatedStartDate, calculatedEndDate)
+	if err != nil {
+		utils.LogError("결제수단별 지출 내역 조회", err)
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "DATABASE_ERROR", "결제수단별 지출 내역 조회 중 오류 발생")
+		return
+	}
+
+	response := map[string]interface{}{
+		"payment_method_id": paymentMethodID,
+		"start_date":        calculatedStartDate,
+		"end_date":          calculatedEndDate,
+		"accounts":          accounts,
+		"total_count":       len(accounts),
+	}
+
+	utils.SendSuccessResponse(w, response)
 }

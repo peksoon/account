@@ -139,6 +139,7 @@ func main() {
 	// 통계 API
 	http.Handle("/statistics", enableCorsAndLogging(http.HandlerFunc(statisticsHandler.GetStatisticsHandler)))
 	http.Handle("/statistics/category-keywords", enableCorsAndLogging(http.HandlerFunc(statisticsHandler.GetCategoryKeywordStatisticsHandler)))
+	http.Handle("/statistics/payment-method-accounts", enableCorsAndLogging(http.HandlerFunc(outAccountHandler.GetOutAccountsByPaymentMethodHandler)))
 
 	// 카테고리 기준치 관리 API
 	http.Handle("/category-budgets", enableCorsAndLogging(http.HandlerFunc(categoryBudgetHandler.GetCategoryBudgetsHandler)))

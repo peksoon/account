@@ -121,15 +121,25 @@ type KeywordStatistics struct {
 	Count       int     `json:"count"`
 }
 
+// PaymentMethodStatistics 구조체 - 결제수단별 통계
+type PaymentMethodStatistics struct {
+	PaymentMethodID   int     `json:"payment_method_id"`
+	PaymentMethodName string  `json:"payment_method_name"`
+	TotalAmount       int     `json:"total_amount"`
+	Percentage        float64 `json:"percentage"`
+	Count             int     `json:"count"`
+}
+
 // StatisticsResponse 구조체 - 통계 응답 (기준치 정보 포함)
 type StatisticsResponse struct {
-	Period       string               `json:"period"`
-	TotalAmount  int                  `json:"total_amount"`
-	TotalCount   int                  `json:"total_count"`
-	Categories   []CategoryStatistics `json:"categories"`
-	TopCategory  *CategoryStatistics  `json:"top_category,omitempty"`
-	ChartData    []ChartData          `json:"chart_data"`
-	BudgetUsages []BudgetUsage        `json:"budget_usages,omitempty"` // 기준치 사용량 정보
+	Period         string                    `json:"period"`
+	TotalAmount    int                       `json:"total_amount"`
+	TotalCount     int                       `json:"total_count"`
+	Categories     []CategoryStatistics      `json:"categories"`
+	TopCategory    *CategoryStatistics       `json:"top_category,omitempty"`
+	ChartData      []ChartData               `json:"chart_data"`
+	BudgetUsages   []BudgetUsage             `json:"budget_usages,omitempty"`   // 기준치 사용량 정보
+	PaymentMethods []PaymentMethodStatistics `json:"payment_methods,omitempty"` // 결제수단 통계
 }
 
 // ChartData 구조체 - 차트 데이터

@@ -19,6 +19,8 @@ type StatisticsRepository interface {
 	GetKeywordStatistics(categoryID int, startDate, endDate, accountType string) ([]models.KeywordStatistics, error)
 	GetTotalAmount(startDate, endDate, accountType string) (int, int, error) // total, count
 	GetAllBudgetUsages(userName string, currentDate time.Time) ([]models.BudgetUsage, error)
+	GetPaymentMethodStatistics(startDate, endDate string) ([]models.PaymentMethodStatistics, error)
+	GetPaymentMethodCategoryStatistics(paymentMethodID int, startDate, endDate string) ([]models.CategoryStatistics, error)
 }
 
 // 통계 조회 핸들러
@@ -93,14 +95,33 @@ func (h *StatisticsHandler) GetStatisticsHandler(w http.ResponseWriter, r *http.
 		}
 	}
 
+	// 결제수단별 통계 조회 (지출 통계인 경우에만)
+	var paymentMethods []models.PaymentMethodStatistics
+	if accountType == "out" {
+		paymentMethods, err = h.DB.GetPaymentMethodStatistics(calculatedStartDate, calculatedEndDate)
+		if err != nil {
+			utils.LogError("결제수단 통계 조회", err)
+			// 결제수단 통계 조회 오류는 무시하고 계속 진행
+			paymentMethods = nil
+		} else {
+			// 퍼센테지 계산
+			for i := range paymentMethods {
+				if totalAmount > 0 {
+					paymentMethods[i].Percentage = float64(paymentMethods[i].TotalAmount) / float64(totalAmount) * 100
+				}
+			}
+		}
+	}
+
 	response := models.StatisticsResponse{
-		Period:       period,
-		TotalAmount:  totalAmount,
-		TotalCount:   totalCount,
-		Categories:   categories,
-		TopCategory:  topCategory,
-		ChartData:    chartData,
-		BudgetUsages: budgetUsages,
+		Period:         period,
+		TotalAmount:    totalAmount,
+		TotalCount:     totalCount,
+		Categories:     categories,
+		TopCategory:    topCategory,
+		ChartData:      chartData,
+		BudgetUsages:   budgetUsages,
+		PaymentMethods: paymentMethods,
 	}
 
 	utils.SendSuccessResponse(w, response)
@@ -375,4 +396,85 @@ func (h *StatisticsHandler) generateChartData(categories []models.CategoryStatis
 	}
 
 	return chartData
+}
+
+// 결제수단별 카테고리 통계 조회 핸들러
+func (h *StatisticsHandler) GetPaymentMethodCategoryStatisticsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.SendErrorResponse(w, http.StatusMethodNotAllowed, models.ErrCodeInvalidInput, "지원되지 않는 메소드입니다.")
+		return
+	}
+
+	// 쿼리 파라미터 파싱
+	paymentMethodIDStr := r.URL.Query().Get("payment_method_id")
+	statisticsType := r.URL.Query().Get("type")
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+
+	// 새로운 개별 기간 선택 파라미터
+	yearStr := r.URL.Query().Get("year")   // 선택한 년도
+	monthStr := r.URL.Query().Get("month") // 선택한 월 (1-12)
+	weekStr := r.URL.Query().Get("week")   // 선택한 주차 (1-53)
+
+	if paymentMethodIDStr == "" {
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "결제수단 ID가 필요합니다.")
+		return
+	}
+
+	paymentMethodID, err := strconv.Atoi(paymentMethodIDStr)
+	if err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, models.ErrCodeInvalidInput, "올바른 결제수단 ID를 입력해주세요.")
+		return
+	}
+
+	// 기본값 설정
+	if statisticsType == "" {
+		statisticsType = "month"
+	}
+
+	// 날짜 범위 계산
+	calculatedStartDate, calculatedEndDate, period := h.calculateDateRange(statisticsType, startDate, endDate, yearStr, monthStr, weekStr)
+
+	// 카테고리별 통계 조회
+	categories, err := h.DB.GetPaymentMethodCategoryStatistics(paymentMethodID, calculatedStartDate, calculatedEndDate)
+	if err != nil {
+		utils.SendErrorResponse(w, http.StatusInternalServerError, models.ErrCodeDatabaseError, "결제수단별 카테고리 통계 조회 중 오류 발생")
+		return
+	}
+
+	// 총합 계산
+	var categoryTotal int
+	for _, category := range categories {
+		categoryTotal += category.TotalAmount
+	}
+
+	// 퍼센테지 계산
+	for i := range categories {
+		if categoryTotal > 0 {
+			categories[i].Percentage = float64(categories[i].TotalAmount) / float64(categoryTotal) * 100
+		}
+	}
+
+	// 차트 데이터 생성
+	chartData := make([]models.ChartData, len(categories))
+	colors := h.generateColors(len(categories))
+
+	for i, category := range categories {
+		chartData[i] = models.ChartData{
+			Label:      category.CategoryName,
+			Value:      category.TotalAmount,
+			Percentage: category.Percentage,
+			Color:      colors[i],
+		}
+	}
+
+	response := map[string]interface{}{
+		"period":            period,
+		"payment_method_id": paymentMethodID,
+		"payment_total":     categoryTotal,
+		"categories":        categories,
+		"chart_data":        chartData,
+	}
+
+	utils.SendSuccessResponse(w, response)
 }

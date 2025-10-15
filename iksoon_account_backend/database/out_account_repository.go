@@ -160,6 +160,49 @@ func (db *DB) GetOutAccountsByDateRange(startDate, endDate string) ([]models.Out
 	return accounts, nil
 }
 
+// GetOutAccountsByPaymentMethod 결제수단별 지출 데이터 조회
+func (db *DB) GetOutAccountsByPaymentMethod(paymentMethodID int, startDate, endDate string) ([]models.OutAccount, error) {
+	query := `
+    SELECT oa.uuid, oa.date, oa.user, oa.money, oa.category_id, oa.keyword_id, oa.payment_method_id, oa.memo, oa.created_at, oa.updated_at,
+           c.name as category_name,
+           COALESCE(k.name, '') as keyword_name,
+           pm.name as payment_method_name
+    FROM out_account_data oa
+    LEFT JOIN categories c ON oa.category_id = c.id
+    LEFT JOIN keywords k ON oa.keyword_id = k.id
+    LEFT JOIN payment_methods pm ON oa.payment_method_id = pm.id
+    WHERE oa.payment_method_id = ? AND DATE(oa.date) >= ? AND DATE(oa.date) <= ?
+    ORDER BY oa.date DESC`
+
+	rows, err := db.Conn.Query(query, paymentMethodID, startDate, endDate)
+	if err != nil {
+		utils.LogError("결제수단별 지출 데이터 조회", err)
+		return nil, fmt.Errorf("결제수단별 지출 데이터 조회 오류: %v", err)
+	}
+	defer rows.Close()
+
+	var accounts []models.OutAccount
+	for rows.Next() {
+		var account models.OutAccount
+		var keywordID *int
+
+		err := rows.Scan(
+			&account.UUID, &account.Date, &account.User, &account.Money, &account.CategoryID,
+			&keywordID, &account.PaymentMethodID, &account.Memo, &account.CreatedAt, &account.UpdatedAt,
+			&account.CategoryName, &account.KeywordName, &account.PaymentMethodName,
+		)
+		if err != nil {
+			utils.LogError("결제수단별 지출 데이터 스캔", err)
+			continue
+		}
+
+		account.KeywordID = keywordID
+		accounts = append(accounts, account)
+	}
+
+	return accounts, nil
+}
+
 // SearchOutAccountsByKeyword 키워드로 지출 데이터 검색
 func (db *DB) SearchOutAccountsByKeyword(keyword, startDate, endDate string) ([]models.OutAccount, error) {
 	query := `

@@ -125,6 +125,7 @@
             <el-tabs v-model="chartViewType" class="custom-tabs">
                 <el-tab-pane label="📊 카테고리별 지출" name="category"></el-tab-pane>
                 <el-tab-pane label="💰 고정/변동 지출 분석" name="expense_type"></el-tab-pane>
+                <el-tab-pane label="💳 결제수단별 지출" name="payment_method"></el-tab-pane>
             </el-tabs>
         </div>
 
@@ -312,6 +313,156 @@
             </div>
         </div>
 
+        <!-- 결제수단별 지출 분석 (지출일 때 선택 시만 표시) -->
+        <div v-if="selectedType === 'out' && chartViewType === 'payment_method'" class="mb-8">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <!-- 도넛 차트 -->
+                <div class="card">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">💳 결제수단별 지출</h2>
+                        <span class="text-sm text-gray-500">{{ statistics?.period }}</span>
+                    </div>
+
+                    <div class="chart-container">
+                        <Doughnut v-if="paymentMethodChartData.datasets[0].data.length > 0"
+                            :key="statistics?.period + 'payment'" :data="paymentMethodChartData"
+                            :options="paymentMethodChartOptions" />
+                        <div v-else class="empty-chart">
+                            <PieChart class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                            <p class="text-gray-500">결제수단 데이터가 없습니다</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 결제수단별 순위 리스트 -->
+                <div class="card">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">💳 결제수단별 지출 순위</h2>
+                        <el-button size="small" @click="togglePaymentMethodSortOrder">
+                            {{ paymentMethodSortOrder === 'desc' ? '↓ 높은순' : '↑ 낮은순' }}
+                        </el-button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div v-for="(payment, index) in sortedPaymentMethods" :key="payment.payment_method_id"
+                            class="category-item cursor-pointer hover:shadow-lg transition-shadow"
+                            :class="{ 'ring-2 ring-blue-500': selectedPaymentMethod?.payment_method_id === payment.payment_method_id }"
+                            @click="showPaymentMethodDetail(payment)">
+                            <div class="flex items-center">
+                                <div class="rank-badge" :style="{ backgroundColor: getPaymentMethodColor(index) }">
+                                    {{ index + 1 }}
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-medium text-gray-900">{{ payment.payment_method_name }}</span>
+                                        <span class="font-bold text-gray-800">{{ formatMoney(payment.total_amount)
+                                        }}원</span>
+                                    </div>
+                                    <div class="flex items-center justify-between mt-1">
+                                        <span class="text-sm text-gray-500">{{ payment.count }}건</span>
+                                        <span class="text-sm font-medium text-red-600">
+                                            {{ payment.percentage.toFixed(1) }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="progress-bar mt-2">
+                                <div class="progress-fill bg-red-500" :style="`width: ${payment.percentage}%`"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="sortedPaymentMethods.length === 0" class="empty-state">
+                        <Folder class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <p class="text-gray-500">해당 기간에 결제수단 데이터가 없습니다</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결제수단별 지출 내역 (결제수단 선택 시 표시) -->
+        <div v-if="selectedPaymentMethod" id="payment-method-detail" class="mb-8">
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">
+                            💳 {{ selectedPaymentMethod.payment_method_name }} - 지출 내역
+                        </h2>
+                        <p class="text-sm text-gray-500 mt-1">
+                            총 {{ formatMoney(selectedPaymentMethod.total_amount) }}원 ({{ selectedPaymentMethod.count
+                            }}건)
+                        </p>
+                    </div>
+                    <el-button size="small" @click="closePaymentMethodDetail">
+                        <X class="w-4 h-4" />
+                        닫기
+                    </el-button>
+                </div>
+
+                <div v-if="loadingPaymentMethodAccounts" class="text-center py-8">
+                    <div class="spinner"></div>
+                    <p class="text-gray-500 mt-4">지출 내역을 불러오는 중...</p>
+                </div>
+
+                <div v-else-if="paymentMethodAccounts.length > 0" class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    날짜</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    카테고리</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    키워드</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    메모</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    사용자</th>
+                                <th
+                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    금액</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="account in paymentMethodAccounts" :key="account.uuid" class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ formatDate(account.date) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span
+                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ account.category_name }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    {{ account.keyword_name || '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                                    {{ account.memo || '-' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    {{ account.user }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-red-600">
+                                    {{ formatMoney(account.money) }}원
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div v-else class="empty-state">
+                    <Folder class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p class="text-gray-500">해당 결제수단으로 결제한 내역이 없습니다</p>
+                </div>
+            </div>
+        </div>
+
         <!-- 기준치 정보 섹션 (지출일 때만 표시) -->
         <div v-if="selectedType === 'out' && selectedUser && budgetUsages && budgetUsages.length > 0" class="mb-8">
             <div class="card">
@@ -446,7 +597,8 @@ import {
     Calculator,
     PieChart,
     Folder,
-    Download
+    Download,
+    X
 } from 'lucide-vue-next';
 import { ElMessage } from 'element-plus';
 import BudgetUsageDisplay from './BudgetUsageDisplay.vue';
@@ -463,6 +615,7 @@ import {
 import { useStatisticsStore } from '../stores/statisticsStore';
 import { useUserStore } from '../stores/userStore';
 import { useCategoryStore } from '../stores/categoryStore';
+import { useApi } from '../composables/useApi';
 import { useRouter } from 'vue-router';
 
 // Chart.js 등록
@@ -478,6 +631,7 @@ export default {
         PieChart,
         Folder,
         Download,
+        X,
         Doughnut,
         Bar,
         BudgetUsageDisplay
@@ -488,6 +642,7 @@ export default {
         const userStore = useUserStore();
         const categoryStore = useCategoryStore();
         const router = useRouter();
+        const api = useApi();
 
         const selectedType = ref('out');
         const selectedPeriod = ref('month');
@@ -500,7 +655,11 @@ export default {
         const selectedKeywordIndex = ref(null);
         const keywordSortOrder = ref('desc');
         const expenseTypeTab = ref('variable'); // 고정/변동 지출 탭
-        const chartViewType = ref('category'); // 차트 뷰 타입 (category, expense_type)
+        const chartViewType = ref('category'); // 차트 뷰 타입 (category, expense_type, payment_method)
+        const paymentMethodSortOrder = ref('desc'); // 결제수단 정렬 순서
+        const selectedPaymentMethod = ref(null); // 선택된 결제수단
+        const paymentMethodAccounts = ref([]); // 결제수단별 지출 내역
+        const loadingPaymentMethodAccounts = ref(false); // 로딩 상태
 
         // 현재 주차를 계산하는 헬퍼 함수
         function getCurrentWeek() {
@@ -772,6 +931,73 @@ export default {
             };
         });
 
+        // 정렬된 결제수단
+        const sortedPaymentMethods = computed(() => {
+            if (!statistics.value?.payment_methods) return [];
+
+            const methods = [...statistics.value.payment_methods];
+            return methods.sort((a, b) => {
+                return paymentMethodSortOrder.value === 'desc'
+                    ? b.total_amount - a.total_amount
+                    : a.total_amount - b.total_amount;
+            });
+        });
+
+        // 결제수단 차트 데이터
+        const paymentMethodChartData = computed(() => {
+            if (!statistics.value?.payment_methods || statistics.value.payment_methods.length === 0) {
+                return {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderWidth: 0
+                    }]
+                };
+            }
+
+            // 결제수단별 색상 생성
+            const colors = statistics.value.payment_methods.map((_, index) => getPaymentMethodColor(index));
+
+            return {
+                labels: statistics.value.payment_methods.map(item => item.payment_method_name),
+                datasets: [{
+                    data: statistics.value.payment_methods.map(item => item.total_amount),
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            };
+        });
+
+        // 결제수단 차트 옵션
+        const paymentMethodChartOptions = computed(() => {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${label}: ${formatMoney(value)}원 (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            };
+        });
+
         // 차트 데이터
         const chartData = computed(() => {
             if (!statistics.value?.chart_data) {
@@ -990,6 +1216,16 @@ export default {
             return new Intl.NumberFormat('ko-KR').format(amount);
         };
 
+        // 날짜 포맷팅
+        const formatDate = (dateString) => {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         // 기준치 관련 computed
         const totalMonthlyBudget = computed(() => {
             return budgetUsages.value.reduce((total, usage) => total + (usage.monthly_budget || 0), 0);
@@ -1098,6 +1334,78 @@ export default {
         // 정렬 순서 토글
         const toggleSortOrder = () => {
             sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc';
+        };
+
+        // 결제수단 정렬 순서 토글
+        const togglePaymentMethodSortOrder = () => {
+            paymentMethodSortOrder.value = paymentMethodSortOrder.value === 'desc' ? 'asc' : 'desc';
+        };
+
+        // 결제수단별 색상 생성 (인덱스 기반)
+        const getPaymentMethodColor = (index) => {
+            const colors = [
+                '#3b82f6', // 파란색
+                '#10b981', // 초록색
+                '#f59e0b', // 주황색
+                '#ef4444', // 빨간색
+                '#8b5cf6', // 보라색
+                '#ec4899', // 분홍색
+                '#14b8a6', // 청록색
+                '#f97316', // 진한 주황색
+                '#6366f1', // 인디고
+                '#84cc16', // 라임
+            ];
+            return colors[index % colors.length];
+        };
+
+        // 결제수단 상세 보기
+        const showPaymentMethodDetail = async (paymentMethod) => {
+            selectedPaymentMethod.value = paymentMethod;
+            loadingPaymentMethodAccounts.value = true;
+
+            try {
+                const params = {
+                    payment_method_id: paymentMethod.payment_method_id,
+                    type: selectedPeriod.value,
+                };
+
+                // 개별 기간 선택 파라미터 추가
+                if (selectedPeriod.value === 'year' && selectedYear.value) {
+                    params.year = selectedYear.value;
+                } else if (selectedPeriod.value === 'month' && selectedYear.value && selectedMonth.value) {
+                    params.year = selectedYear.value;
+                    params.month = selectedMonth.value;
+                } else if (selectedPeriod.value === 'week' && selectedYear.value && selectedWeek.value) {
+                    params.year = selectedYear.value;
+                    params.week = selectedWeek.value;
+                } else if (selectedPeriod.value === 'custom') {
+                    params.start_date = customStartDate.value;
+                    params.end_date = customEndDate.value;
+                }
+
+                const response = await api.get('/statistics/payment-method-accounts', params);
+                paymentMethodAccounts.value = response.data.accounts || [];
+
+                // 지출 내역 섹션으로 스크롤
+                setTimeout(() => {
+                    const element = document.getElementById('payment-method-detail');
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('결제수단별 지출 내역 조회 오류:', error);
+                ElMessage.error('결제수단별 지출 내역 조회 중 오류가 발생했습니다');
+                paymentMethodAccounts.value = [];
+            } finally {
+                loadingPaymentMethodAccounts.value = false;
+            }
+        };
+
+        // 결제수단 상세 닫기
+        const closePaymentMethodDetail = () => {
+            selectedPaymentMethod.value = null;
+            paymentMethodAccounts.value = [];
         };
 
         // 키워드 정렬 순서 토글
@@ -1289,6 +1597,15 @@ export default {
             expenseTypeChartData,
             expenseTypeChartOptions,
 
+            // 결제수단 관련
+            paymentMethodSortOrder,
+            sortedPaymentMethods,
+            paymentMethodChartData,
+            paymentMethodChartOptions,
+            selectedPaymentMethod,
+            paymentMethodAccounts,
+            loadingPaymentMethodAccounts,
+
             // 새로운 computed 속성들
             availableYears,
             availableMonths,
@@ -1301,6 +1618,7 @@ export default {
             isNearLimit,
 
             formatMoney,
+            formatDate,
             handleUserChange,
             handleTypeChange,
             handlePeriodChange,
@@ -1312,14 +1630,18 @@ export default {
             handleWeekChange,
 
             toggleSortOrder,
+            togglePaymentMethodSortOrder,
             toggleKeywordSortOrder,
             showCategoryDetail,
             showExpenseTypeCategoryDetail,
+            showPaymentMethodDetail,
             closeKeywordDetail,
+            closePaymentMethodDetail,
             handleChartClick,
             handleExpenseTypeChartClick,
             openExportData,
-            getCategoryColor, // 추가된 함수
+            getCategoryColor,
+            getPaymentMethodColor,
 
             // 아이콘들
             TrendingUp,
@@ -1328,7 +1650,8 @@ export default {
             Calculator,
             PieChart,
             Folder,
-            Download
+            Download,
+            X
         };
     }
 };
