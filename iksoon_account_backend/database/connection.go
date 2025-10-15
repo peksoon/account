@@ -133,6 +133,7 @@ func (db *DB) createCategoryTable() error {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name VARCHAR(255) NOT NULL,
         type VARCHAR(10) NOT NULL CHECK (type IN ('out', 'in')),
+        expense_type VARCHAR(10) DEFAULT 'variable' CHECK (expense_type IN ('fixed', 'variable')),
         is_active BOOLEAN DEFAULT 1,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,

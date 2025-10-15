@@ -28,6 +28,27 @@
                 </el-select>
               </el-form-item>
             </div>
+            <!-- 지출 유형 선택 (지출 카테고리만) -->
+            <div v-if="newCategory.type === 'out'" class="mb-4">
+              <el-form-item label="지출 유형" prop="expense_type">
+                <el-radio-group v-model="newCategory.expense_type" size="large">
+                  <el-radio label="variable">
+                    <div class="inline-flex items-center">
+                      <span class="mr-1">💳</span>
+                      <span>변동 지출</span>
+                      <span class="ml-1 text-xs text-gray-500">(식비, 쇼핑 등)</span>
+                    </div>
+                  </el-radio>
+                  <el-radio label="fixed">
+                    <div class="inline-flex items-center">
+                      <span class="mr-1">📌</span>
+                      <span>고정 지출</span>
+                      <span class="ml-1 text-xs text-gray-500">(월세, 구독료 등)</span>
+                    </div>
+                  </el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </div>
             <div class="flex justify-end">
               <el-button type="primary" @click="addCategory" :loading="loading" size="large">
                 추가
@@ -69,6 +90,25 @@
               <el-option label="수입" value="in" />
             </el-select>
           </el-form-item>
+          <!-- 지출 유형 선택 (지출 카테고리만) -->
+          <el-form-item v-if="editingCategory.type === 'out'" label="지출 유형" prop="expense_type">
+            <el-radio-group v-model="editingCategory.expense_type" size="large">
+              <el-radio label="variable">
+                <div class="inline-flex items-center">
+                  <span class="mr-1">💳</span>
+                  <span>변동 지출</span>
+                  <span class="ml-1 text-xs text-gray-500">(식비, 쇼핑 등)</span>
+                </div>
+              </el-radio>
+              <el-radio label="fixed">
+                <div class="inline-flex items-center">
+                  <span class="mr-1">📌</span>
+                  <span>고정 지출</span>
+                  <span class="ml-1 text-xs text-gray-500">(월세, 구독료 등)</span>
+                </div>
+              </el-radio>
+            </el-radio-group>
+          </el-form-item>
           <div class="flex justify-end space-x-3">
             <el-button @click="cancelEdit" :disabled="loading">취소</el-button>
             <el-button type="primary" @click="updateCategory" :loading="loading">수정</el-button>
@@ -100,7 +140,8 @@ export default {
 
     const newCategory = ref({
       name: '',
-      type: 'out'
+      type: 'out',
+      expense_type: 'variable' // 기본값: 변동 지출
     });
 
     const rules = {
@@ -128,15 +169,22 @@ export default {
         await addFormRef.value.validate();
         loading.value = true;
 
-        await categoryStore.createCategory({
+        const categoryData = {
           name: newCategory.value.name,
           type: newCategory.value.type
-        });
+        };
+
+        // 지출 카테고리인 경우 expense_type 포함
+        if (newCategory.value.type === 'out') {
+          categoryData.expense_type = newCategory.value.expense_type || 'variable';
+        }
+
+        await categoryStore.createCategory(categoryData);
 
         ElMessage.success('카테고리가 성공적으로 추가되었습니다');
 
         // 폼 초기화
-        newCategory.value = { name: '', type: 'out' };
+        newCategory.value = { name: '', type: 'out', expense_type: 'variable' };
         addFormRef.value.resetFields();
       } catch (error) {
         if (error.response?.data?.message) {
@@ -159,11 +207,18 @@ export default {
         await editFormRef.value.validate();
         loading.value = true;
 
-        await categoryStore.updateCategory({
+        const categoryData = {
           id: editingCategory.value.id,
           name: editingCategory.value.name,
           type: editingCategory.value.type
-        });
+        };
+
+        // 지출 카테고리인 경우 expense_type 포함
+        if (editingCategory.value.type === 'out') {
+          categoryData.expense_type = editingCategory.value.expense_type || 'variable';
+        }
+
+        await categoryStore.updateCategory(categoryData);
 
         ElMessage.success('카테고리가 성공적으로 수정되었습니다');
         editingCategory.value = null;

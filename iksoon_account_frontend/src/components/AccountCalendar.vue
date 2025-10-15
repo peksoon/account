@@ -172,9 +172,18 @@
                     <div v-else class="w-3 h-3 bg-green-500 rounded-full"></div>
                   </div>
                   <div>
-                    <p class="font-semibold text-gray-800">{{ getCategoryName(data.category_id) || data.category || '-'
-                      }}
-                    </p>
+                    <div class="flex items-center gap-2">
+                      <p class="font-semibold text-gray-800">{{ getCategoryName(data.category_id) || data.category ||
+                        '-'
+                        }}
+                      </p>
+                      <!-- 지출 유형 표시 (지출 카테고리만) -->
+                      <span v-if="data.type === 'out' && getCategory(data.category_id)"
+                        class="text-xs px-2 py-0.5 rounded-full"
+                        :class="getCategory(data.category_id).expense_type === 'fixed' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'">
+                        {{ getCategory(data.category_id).expense_type === 'fixed' ? '📌 고정' : '💳 변동' }}
+                      </span>
+                    </div>
                     <p v-if="data.keyword_name || data.keyword" class="text-sm text-gray-600">🏷️ {{ data.keyword_name
                       ||
                       data.keyword }}</p>
@@ -834,6 +843,12 @@ export default {
       return category ? category.name : '';
     };
 
+    // 카테고리 객체 가져오기
+    const getCategory = (categoryId) => {
+      if (!categoryId) return null;
+      return categoryStore.getCategoryById(categoryId);
+    };
+
     // 컴포넌트 마운트 시 초기화
     onMounted(async () => {
       await initCalendar();
@@ -895,6 +910,7 @@ export default {
       openAddPopupForSelectedDate,
       formatMoney,
       getCategoryName,
+      getCategory,
 
       // 관리 모달 상태
       showUserManager,

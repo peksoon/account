@@ -14,14 +14,14 @@ func (db *DB) GetCategories(categoryType string) ([]models.Category, error) {
 
 	if categoryType != "" {
 		query = `
-			SELECT id, name, type, created_at, updated_at 
+			SELECT id, name, type, COALESCE(expense_type, 'variable') as expense_type, is_active, created_at, updated_at 
 			FROM categories 
 			WHERE type = ?
 			ORDER BY name ASC`
 		args = append(args, categoryType)
 	} else {
 		query = `
-			SELECT id, name, type, created_at, updated_at 
+			SELECT id, name, type, COALESCE(expense_type, 'variable') as expense_type, is_active, created_at, updated_at 
 			FROM categories 
 			ORDER BY type ASC, name ASC`
 	}
@@ -37,7 +37,7 @@ func (db *DB) GetCategories(categoryType string) ([]models.Category, error) {
 		var category models.Category
 		var createdAt, updatedAt string
 
-		err := rows.Scan(&category.ID, &category.Name, &category.Type, &createdAt, &updatedAt)
+		err := rows.Scan(&category.ID, &category.Name, &category.Type, &category.ExpenseType, &category.IsActive, &createdAt, &updatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("카테고리 데이터 읽기 오류: %v", err)
 		}
@@ -57,7 +57,7 @@ func (db *DB) GetCategories(categoryType string) ([]models.Category, error) {
 }
 
 // CreateCategory 카테고리 생성
-func (db *DB) CreateCategory(name, categoryType string) (int64, error) {
+func (db *DB) CreateCategory(name, categoryType, expenseType string) (int64, error) {
 	// 중복 확인 (같은 타입에서 같은 이름의 활성 카테고리)
 	var count int
 	err := db.Conn.QueryRow(`
@@ -70,11 +70,16 @@ func (db *DB) CreateCategory(name, categoryType string) (int64, error) {
 		return 0, fmt.Errorf("이미 존재하는 카테고리입니다")
 	}
 
-	query := `
-		INSERT INTO categories (name, type, created_at, updated_at) 
-		VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+	// expenseType 기본값 처리
+	if expenseType == "" {
+		expenseType = "variable"
+	}
 
-	result, err := db.Conn.Exec(query, name, categoryType)
+	query := `
+		INSERT INTO categories (name, type, expense_type, created_at, updated_at) 
+		VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+
+	result, err := db.Conn.Exec(query, name, categoryType, expenseType)
 	if err != nil {
 		return 0, fmt.Errorf("카테고리 생성 오류: %v", err)
 	}
@@ -88,7 +93,7 @@ func (db *DB) CreateCategory(name, categoryType string) (int64, error) {
 }
 
 // UpdateCategory 카테고리 수정
-func (db *DB) UpdateCategory(id int, name string, categoryType string) error {
+func (db *DB) UpdateCategory(id int, name string, categoryType string, expenseType string) error {
 	// 중복 확인 (자신 제외)
 	var count int
 	err := db.Conn.QueryRow(`
@@ -102,12 +107,17 @@ func (db *DB) UpdateCategory(id int, name string, categoryType string) error {
 		return fmt.Errorf("이미 존재하는 카테고리입니다")
 	}
 
+	// expenseType 기본값 처리
+	if expenseType == "" {
+		expenseType = "variable"
+	}
+
 	query := `
 		UPDATE categories 
-		SET name = ?, type = ?, updated_at = CURRENT_TIMESTAMP 
+		SET name = ?, type = ?, expense_type = ?, updated_at = CURRENT_TIMESTAMP 
 		WHERE id = ?`
 
-	result, err := db.Conn.Exec(query, name, categoryType, id)
+	result, err := db.Conn.Exec(query, name, categoryType, expenseType, id)
 	if err != nil {
 		return fmt.Errorf("카테고리 수정 오류: %v", err)
 	}
@@ -203,14 +213,14 @@ func (db *DB) ForceDeleteCategory(id int) error {
 // GetCategoryByID ID로 카테고리 조회
 func (db *DB) GetCategoryByID(id int) (*models.Category, error) {
 	query := `
-		SELECT id, name, type, created_at, updated_at 
+		SELECT id, name, type, COALESCE(expense_type, 'variable') as expense_type, is_active, created_at, updated_at 
 		FROM categories 
 		WHERE id = ?`
 
 	var category models.Category
 	var createdAt, updatedAt string
 
-	err := db.Conn.QueryRow(query, id).Scan(&category.ID, &category.Name, &category.Type, &createdAt, &updatedAt)
+	err := db.Conn.QueryRow(query, id).Scan(&category.ID, &category.Name, &category.Type, &category.ExpenseType, &category.IsActive, &createdAt, &updatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("카테고리 조회 오류: %v", err)
 	}

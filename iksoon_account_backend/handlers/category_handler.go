@@ -16,8 +16,8 @@ type CategoryHandler struct {
 
 type CategoryRepository interface {
 	GetCategories(categoryType string) ([]models.Category, error)
-	CreateCategory(name, categoryType string) (int64, error)
-	UpdateCategory(id int, name string, categoryType string) error
+	CreateCategory(name, categoryType, expenseType string) (int64, error)
+	UpdateCategory(id int, name string, categoryType string, expenseType string) error
 	CheckCategoryUsage(categoryID int) (bool, error)
 	DeleteCategory(id int) error
 	ForceDeleteCategory(id int) error
@@ -68,7 +68,17 @@ func (h *CategoryHandler) CreateCategoryHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	categoryID, err := h.DB.CreateCategory(req.Name, req.Type)
+	// expenseType 기본값 처리 및 검증
+	expenseType := req.ExpenseType
+	if expenseType == "" {
+		expenseType = "variable"
+	}
+	if expenseType != "fixed" && expenseType != "variable" {
+		utils.SendError(w, apiErrors.ErrInvalidData.WithMessage("expense_type은 'fixed' 또는 'variable'이어야 합니다"))
+		return
+	}
+
+	categoryID, err := h.DB.CreateCategory(req.Name, req.Type, expenseType)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			utils.SendError(w, apiErrors.ErrAlreadyExists.WithMessage("이미 존재하는 카테고리입니다"))
@@ -124,7 +134,17 @@ func (h *CategoryHandler) UpdateCategoryHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = h.DB.UpdateCategory(categoryID, req.Name, req.Type)
+	// expenseType 기본값 처리 및 검증
+	expenseType := req.ExpenseType
+	if expenseType == "" {
+		expenseType = "variable"
+	}
+	if expenseType != "fixed" && expenseType != "variable" {
+		utils.SendError(w, apiErrors.ErrInvalidData.WithMessage("expense_type은 'fixed' 또는 'variable'이어야 합니다"))
+		return
+	}
+
+	err = h.DB.UpdateCategory(categoryID, req.Name, req.Type, expenseType)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows affected") {
 			utils.SendError(w, apiErrors.ErrNotFound.WithMessage("카테고리를 찾을 수 없습니다"))

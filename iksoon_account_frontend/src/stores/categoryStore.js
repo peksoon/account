@@ -66,12 +66,19 @@ export const useCategoryStore = defineStore('category', {
     // 카테고리 수정
     async updateCategory(updateData) {
       try {
+        const requestData = {
+          name: updateData.name,
+          type: updateData.type
+        };
+
+        // 지출 카테고리인 경우 expense_type 포함
+        if (updateData.type === 'out' && updateData.expense_type) {
+          requestData.expense_type = updateData.expense_type;
+        }
+
         const response = await axios.put(
           `${BACKEND_API_BASE_URL}/categories/update?id=${updateData.id}`, 
-          {
-            name: updateData.name,
-            type: updateData.type
-          }
+          requestData
         );
         
         // 수정 후 목록 새로고침

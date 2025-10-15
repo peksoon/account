@@ -18,6 +18,11 @@
                         :class="category.type === 'out' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'">
                         {{ category.type === 'out' ? '지출' : '수입' }}
                     </span>
+                    <!-- 지출 유형 표시 (지출 카테고리만) -->
+                    <span v-if="category.type === 'out'" class="ml-2 px-2 py-1 text-xs rounded-full"
+                        :class="category.expense_type === 'fixed' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'">
+                        {{ category.expense_type === 'fixed' ? '📌 고정' : '💳 변동' }}
+                    </span>
                 </div>
                 <div class="text-xs text-gray-400 mt-1">
                     ID: {{ category.id }} | 생성일: {{ formatDate(category.created_at) }}

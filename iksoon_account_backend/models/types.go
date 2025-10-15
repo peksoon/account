@@ -14,11 +14,13 @@ type User struct {
 
 // Category 구조체 - 카테고리 관리
 type Category struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Type      string    `json:"type"` // 'out' 또는 'in'
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	Type        string    `json:"type"`         // 'out' 또는 'in'
+	ExpenseType string    `json:"expense_type"` // 'fixed' 또는 'variable' (지출 카테고리만 해당)
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // Keyword 구조체 - 키워드 관리
@@ -140,8 +142,9 @@ type ChartData struct {
 
 // Request 구조체들
 type CategoryRequest struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	ExpenseType string `json:"expense_type"` // 'fixed' 또는 'variable' (지출 카테고리만 해당)
 }
 
 type PaymentMethodRequest struct {
