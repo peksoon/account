@@ -177,10 +177,9 @@
                   </div>
                   <div>
                     <div class="flex items-center gap-2">
-                      <p class="font-semibold text-gray-800">{{ getCategoryName(data.category_id) || data.category ||
-                        '-'
-                        }}
-                      </p>
+                      <p v-if="data.keyword_name || data.keyword" class="font-semibold text-lg text-gray-800">{{
+                        data.keyword_name || data.keyword }}</p>
+                      <p v-else class="font-semibold text-lg text-gray-500">키워드 없음</p>
                       <!-- 지출 유형 표시 (지출 카테고리만) -->
                       <span v-if="data.type === 'out' && getCategory(data.category_id)"
                         class="text-xs px-2 py-0.5 rounded-full"
@@ -188,10 +187,8 @@
                         {{ getCategory(data.category_id).expense_type === 'fixed' ? '📌 고정' : '💳 변동' }}
                       </span>
                     </div>
-                    <p v-if="data.keyword_name || data.keyword" class="text-sm text-gray-600">🏷️ {{ data.keyword_name
-                      ||
-                      data.keyword }}</p>
-                    <p v-else class="text-sm text-gray-500">키워드 없음</p>
+                    <p class="text-sm text-gray-600">{{ getCategoryName(data.category_id) || data.category || '카테고리 없음'
+                    }}</p>
                   </div>
                 </div>
                 <div class="text-right">

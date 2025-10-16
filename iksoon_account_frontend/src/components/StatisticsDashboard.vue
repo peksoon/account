@@ -195,7 +195,7 @@
                                 <div class="flex items-center justify-between">
                                     <span class="font-medium text-gray-900">{{ category.category_name }}</span>
                                     <span class="font-bold text-gray-800">{{ formatMoney(category.total_amount)
-                                        }}원</span>
+                                    }}원</span>
                                 </div>
                                 <div class="flex items-center justify-between mt-1">
                                     <span class="text-sm text-gray-500">{{ category.count }}건</span>
@@ -312,7 +312,7 @@
                                         <div class="flex items-center justify-between">
                                             <span class="font-medium text-gray-900">{{ category.category_name }}</span>
                                             <span class="font-bold text-gray-800">{{ formatMoney(category.total_amount)
-                                                }}원</span>
+                                            }}원</span>
                                         </div>
                                         <div class="flex items-center justify-between mt-1">
                                             <span class="text-sm text-gray-500">{{ category.count }}건</span>
@@ -381,7 +381,7 @@
                                     <div class="flex items-center justify-between">
                                         <span class="font-medium text-gray-900">{{ payment.payment_method_name }}</span>
                                         <span class="font-bold text-gray-800">{{ formatMoney(payment.total_amount)
-                                        }}원</span>
+                                            }}원</span>
                                     </div>
                                     <div class="flex items-center justify-between mt-1">
                                         <span class="text-sm text-gray-500">{{ payment.count }}건</span>
@@ -530,7 +530,7 @@
                                     <div class="flex items-center justify-between">
                                         <span class="font-medium text-gray-900">{{ user.user_name }}</span>
                                         <span class="font-bold text-gray-800">{{ formatMoney(user.total_amount)
-                                        }}원</span>
+                                            }}원</span>
                                     </div>
                                     <div class="flex items-center justify-between mt-1">
                                         <span class="text-sm text-gray-500">{{ user.count }}건</span>
