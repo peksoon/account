@@ -1060,6 +1060,7 @@ export default {
                 return {
                     labels: [],
                     datasets: [{
+                        label: '',
                         data: [],
                         backgroundColor: [],
                         borderWidth: 0
@@ -1072,6 +1073,7 @@ export default {
             return {
                 labels: expenseTypeCategories.value.map(cat => cat.category_name),
                 datasets: [{
+                    label: '',
                     data: expenseTypeCategories.value.map(cat => cat.total_amount),
                     backgroundColor: colors,
                     borderWidth: 0,
@@ -1126,6 +1128,7 @@ export default {
                 return {
                     labels: [],
                     datasets: [{
+                        label: '',
                         data: [],
                         backgroundColor: [],
                         borderWidth: 0
@@ -1139,6 +1142,7 @@ export default {
             return {
                 labels: statistics.value.payment_methods.map(item => item.payment_method_name),
                 datasets: [{
+                    label: '',
                     data: statistics.value.payment_methods.map(item => item.total_amount),
                     backgroundColor: colors,
                     borderWidth: 0,
@@ -1181,6 +1185,7 @@ export default {
                 return {
                     labels: [],
                     datasets: [{
+                        label: '',
                         data: [],
                         backgroundColor: [],
                         borderWidth: 0
@@ -1203,6 +1208,7 @@ export default {
             const chartDataResult = {
                 labels: statistics.value.chart_data.map(item => item.label),
                 datasets: [{
+                    label: '',
                     data: statistics.value.chart_data.map(item => item.value),
                     backgroundColor: [...colors], // 배열 복사로 Chart.js 인식 개선
                     borderWidth: 0,
@@ -1228,6 +1234,7 @@ export default {
                 return {
                     labels: [],
                     datasets: [{
+                        label: '',
                         data: [],
                         backgroundColor: [],
                         borderWidth: 0
@@ -1261,6 +1268,7 @@ export default {
             return {
                 labels: sortedKeywords.map(keyword => keyword?.keyword_name || '키워드'),
                 datasets: [{
+                    label: '',
                     data: sortedKeywords.map(keyword => keyword?.total_amount || 0),
                     backgroundColor: colors,
                     borderWidth: 0,
@@ -1620,6 +1628,7 @@ export default {
                 return {
                     labels: [],
                     datasets: [{
+                        label: '',
                         data: [],
                         backgroundColor: [],
                         borderWidth: 0
@@ -1632,6 +1641,7 @@ export default {
             return {
                 labels: statistics.value.users.map(item => item.user_name),
                 datasets: [{
+                    label: '',
                     data: statistics.value.users.map(item => item.total_amount),
                     backgroundColor: colors,
                     borderWidth: 0,

@@ -40,10 +40,10 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">기간</label>
             <el-select v-model="dateRange" class="w-full">
-              <el-option label="이번 주" value="week" />
-              <el-option label="이번 달" value="month" />
-              <el-option label="올해" value="year" />
-              <el-option label="사용자 지정" value="custom" />
+              <el-option label="주 선택" value="select-week" />
+              <el-option label="월 선택" value="select-month" />
+              <el-option label="연도 선택" value="select-year" />
+              <el-option label="기간 지정" value="custom" />
             </el-select>
           </div>
 
@@ -64,6 +64,33 @@
               <Search class="w-4 h-4 mr-2" />
               검색
             </el-button>
+          </div>
+        </div>
+
+        <!-- Week Picker -->
+        <div v-if="dateRange === 'select-week'" class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">주 선택</label>
+            <el-date-picker v-model="selectedWeek" type="week" placeholder="주를 선택하세요" format="YYYY년 W주"
+              value-format="YYYY-MM-DD" class="w-full" />
+          </div>
+        </div>
+
+        <!-- Month Picker -->
+        <div v-if="dateRange === 'select-month'" class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">월 선택</label>
+            <el-date-picker v-model="selectedMonth" type="month" placeholder="월을 선택하세요" format="YYYY년 MM월"
+              value-format="YYYY-MM" class="w-full" />
+          </div>
+        </div>
+
+        <!-- Year Picker -->
+        <div v-if="dateRange === 'select-year'" class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">연도 선택</label>
+            <el-date-picker v-model="selectedYear" type="year" placeholder="연도를 선택하세요" format="YYYY년"
+              value-format="YYYY" class="w-full" />
           </div>
         </div>
 
@@ -219,8 +246,11 @@ export default {
     // State
     const searchQuery = ref('');
     const searchType = ref('all');
-    const dateRange = ref('month');
+    const dateRange = ref('select-month');
     const sortBy = ref('date-desc');
+    const selectedWeek = ref('');
+    const selectedMonth = ref('');
+    const selectedYear = ref('');
     const customStartDate = ref('');
     const customEndDate = ref('');
     const searching = ref(false);
@@ -251,26 +281,59 @@ export default {
       let startDate, endDate;
 
       switch (dateRange.value) {
-        case 'week': {
-          const startOfWeek = new Date(now);
-          startOfWeek.setDate(now.getDate() - now.getDay());
-          startDate = startOfWeek.toISOString().slice(0, 10);
+        case 'select-week': {
+          if (selectedWeek.value) {
+            // selectedWeek는 해당 주의 시작일(월요일 또는 일요일)을 반환
+            const weekDate = new Date(selectedWeek.value);
+            // 해당 주의 일요일로 시작
+            const startOfWeek = new Date(weekDate);
+            startOfWeek.setDate(weekDate.getDate() - weekDate.getDay());
+            startDate = startOfWeek.toISOString().slice(0, 10);
 
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setDate(startOfWeek.getDate() + 6);
-          endDate = endOfWeek.toISOString().slice(0, 10);
+            // 해당 주의 토요일로 끝
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endDate = endOfWeek.toISOString().slice(0, 10);
+          } else {
+            // 기본값: 이번 주
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            startDate = startOfWeek.toISOString().slice(0, 10);
+
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endDate = endOfWeek.toISOString().slice(0, 10);
+          }
           break;
         }
 
-        case 'month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+        case 'select-month': {
+          if (selectedMonth.value) {
+            // selectedMonth는 "YYYY-MM" 형식
+            const [year, month] = selectedMonth.value.split('-').map(Number);
+            startDate = new Date(year, month - 1, 1).toISOString().slice(0, 10);
+            endDate = new Date(year, month, 0).toISOString().slice(0, 10);
+          } else {
+            // 기본값: 이번 달
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+          }
           break;
+        }
 
-        case 'year':
-          startDate = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
-          endDate = new Date(now.getFullYear(), 11, 31).toISOString().slice(0, 10);
+        case 'select-year': {
+          if (selectedYear.value) {
+            // selectedYear는 "YYYY" 형식
+            const year = parseInt(selectedYear.value);
+            startDate = new Date(year, 0, 1).toISOString().slice(0, 10);
+            endDate = new Date(year, 11, 31).toISOString().slice(0, 10);
+          } else {
+            // 기본값: 올해
+            startDate = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+            endDate = new Date(now.getFullYear(), 11, 31).toISOString().slice(0, 10);
+          }
           break;
+        }
 
         case 'custom':
           startDate = customStartDate.value;
@@ -468,8 +531,21 @@ export default {
 
     // Initialize
     onMounted(async () => {
-      // Set default custom dates to this month
+      // Set default values
       const now = new Date();
+
+      // 기본값: 이번 주
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      selectedWeek.value = startOfWeek.toISOString().slice(0, 10);
+
+      // 기본값: 이번 달
+      selectedMonth.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      // 기본값: 올해
+      selectedYear.value = String(now.getFullYear());
+
+      // 사용자 지정 기간 기본값
       customStartDate.value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
       customEndDate.value = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
 
@@ -483,6 +559,9 @@ export default {
       searchType,
       dateRange,
       sortBy,
+      selectedWeek,
+      selectedMonth,
+      selectedYear,
       customStartDate,
       customEndDate,
       searching,
