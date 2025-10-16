@@ -120,13 +120,38 @@
             </div>
         </div>
 
-        <!-- 차트 유형 선택 탭 (지출일 때만 표시) -->
+        <!-- 차트 유형 선택 (지출일 때만 표시) -->
         <div v-if="selectedType === 'out'" class="mb-6">
-            <el-tabs v-model="chartViewType" class="custom-tabs">
-                <el-tab-pane label="📊 카테고리별 지출" name="category"></el-tab-pane>
-                <el-tab-pane label="💰 고정/변동 지출 분석" name="expense_type"></el-tab-pane>
-                <el-tab-pane label="💳 결제수단별 지출" name="payment_method"></el-tab-pane>
-            </el-tabs>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button @click="chartViewType = 'category'" :class="[
+                    'chart-type-button',
+                    chartViewType === 'category' ? 'active' : ''
+                ]">
+                    <span class="text-2xl mb-1">📊</span>
+                    <span class="text-sm font-medium">카테고리별</span>
+                </button>
+                <button @click="chartViewType = 'expense_type'" :class="[
+                    'chart-type-button',
+                    chartViewType === 'expense_type' ? 'active' : ''
+                ]">
+                    <span class="text-2xl mb-1">💰</span>
+                    <span class="text-sm font-medium">고정/변동</span>
+                </button>
+                <button @click="chartViewType = 'payment_method'" :class="[
+                    'chart-type-button',
+                    chartViewType === 'payment_method' ? 'active' : ''
+                ]">
+                    <span class="text-2xl mb-1">💳</span>
+                    <span class="text-sm font-medium">결제수단별</span>
+                </button>
+                <button @click="chartViewType = 'user'" :class="[
+                    'chart-type-button',
+                    chartViewType === 'user' ? 'active' : ''
+                ]">
+                    <span class="text-2xl mb-1">👤</span>
+                    <span class="text-sm font-medium">사용자별</span>
+                </button>
+            </div>
         </div>
 
         <!-- 카테고리별 지출 차트 (수입일 때 항상 표시, 지출일 때는 선택 시만 표시) -->
@@ -463,6 +488,154 @@
             </div>
         </div>
 
+        <!-- 사용자별 지출 분석 (지출일 때 선택 시만 표시) -->
+        <div v-if="selectedType === 'out' && chartViewType === 'user'" class="mb-8">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <!-- 도넛 차트 -->
+                <div class="card">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">👤 사용자별 지출</h2>
+                        <span class="text-sm text-gray-500">{{ statistics?.period }}</span>
+                    </div>
+
+                    <div class="chart-container">
+                        <Doughnut v-if="userChartData.datasets[0].data.length > 0" :key="statistics?.period + 'user'"
+                            :data="userChartData" :options="userChartOptions" />
+                        <div v-else class="empty-chart">
+                            <PieChart class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                            <p class="text-gray-500">사용자 데이터가 없습니다</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 사용자별 순위 리스트 -->
+                <div class="card">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">👤 사용자별 지출 순위</h2>
+                        <el-button size="small" @click="toggleUserSortOrder">
+                            {{ userSortOrder === 'desc' ? '↓ 높은순' : '↑ 낮은순' }}
+                        </el-button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div v-for="(user, index) in sortedUsers" :key="user.user_name"
+                            class="category-item cursor-pointer hover:shadow-lg transition-shadow"
+                            :class="{ 'ring-2 ring-blue-500': selectedUserDetail?.user_name === user.user_name }"
+                            @click="showUserDetail(user)">
+                            <div class="flex items-center">
+                                <div class="rank-badge" :style="{ backgroundColor: getUserColor(index) }">
+                                    {{ index + 1 }}
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-medium text-gray-900">{{ user.user_name }}</span>
+                                        <span class="font-bold text-gray-800">{{ formatMoney(user.total_amount)
+                                        }}원</span>
+                                    </div>
+                                    <div class="flex items-center justify-between mt-1">
+                                        <span class="text-sm text-gray-500">{{ user.count }}건</span>
+                                        <span class="text-sm font-medium text-red-600">
+                                            {{ user.percentage.toFixed(1) }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="progress-bar mt-2">
+                                <div class="progress-fill bg-red-500" :style="`width: ${user.percentage}%`"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="sortedUsers.length === 0" class="empty-state">
+                        <Folder class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <p class="text-gray-500">해당 기간에 사용자 데이터가 없습니다</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 사용자별 지출 내역 (사용자 선택 시 표시) -->
+        <div v-if="selectedUserDetail" id="user-detail" class="mb-8">
+            <div class="card">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">
+                            👤 {{ selectedUserDetail.user_name }} - 지출 내역
+                        </h2>
+                        <p class="text-sm text-gray-500 mt-1">
+                            총 {{ formatMoney(selectedUserDetail.total_amount) }}원 ({{ selectedUserDetail.count }}건)
+                        </p>
+                    </div>
+                    <el-button size="small" @click="closeUserDetail">
+                        <X class="w-4 h-4" />
+                        닫기
+                    </el-button>
+                </div>
+
+                <div v-if="loadingUserAccounts" class="text-center py-8">
+                    <div class="spinner"></div>
+                    <p class="text-gray-500 mt-4">지출 내역을 불러오는 중...</p>
+                </div>
+
+                <div v-else-if="userAccounts.length > 0" class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    날짜</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    카테고리</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    키워드</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    결제수단</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    메모</th>
+                                <th
+                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    금액</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="account in userAccounts" :key="account.uuid" class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ formatDate(account.date) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span
+                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ account.category_name }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    {{ account.keyword_name || '-' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    {{ account.payment_method_name || '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                                    {{ account.memo || '-' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-red-600">
+                                    {{ formatMoney(account.money) }}원
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div v-else class="empty-state">
+                    <Folder class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p class="text-gray-500">해당 사용자의 지출 내역이 없습니다</p>
+                </div>
+            </div>
+        </div>
+
         <!-- 기준치 정보 섹션 (지출일 때만 표시) -->
         <div v-if="selectedType === 'out' && selectedUser && budgetUsages && budgetUsages.length > 0" class="mb-8">
             <div class="card">
@@ -655,11 +828,15 @@ export default {
         const selectedKeywordIndex = ref(null);
         const keywordSortOrder = ref('desc');
         const expenseTypeTab = ref('variable'); // 고정/변동 지출 탭
-        const chartViewType = ref('category'); // 차트 뷰 타입 (category, expense_type, payment_method)
+        const chartViewType = ref('category'); // 차트 뷰 타입 (category, expense_type, payment_method, user)
         const paymentMethodSortOrder = ref('desc'); // 결제수단 정렬 순서
         const selectedPaymentMethod = ref(null); // 선택된 결제수단
         const paymentMethodAccounts = ref([]); // 결제수단별 지출 내역
         const loadingPaymentMethodAccounts = ref(false); // 로딩 상태
+        const userSortOrder = ref('desc'); // 사용자 정렬 순서
+        const selectedUserDetail = ref(null); // 선택된 사용자
+        const userAccounts = ref([]); // 사용자별 지출 내역
+        const loadingUserAccounts = ref(false); // 로딩 상태
 
         // 현재 주차를 계산하는 헬퍼 함수
         function getCurrentWeek() {
@@ -1358,6 +1535,23 @@ export default {
             return colors[index % colors.length];
         };
 
+        // 사용자별 색상 생성 (인덱스 기반)
+        const getUserColor = (index) => {
+            const colors = [
+                '#f97316', // 주황색
+                '#06b6d4', // 시안색
+                '#8b5cf6', // 보라색
+                '#ec4899', // 분홍색
+                '#10b981', // 초록색
+                '#eab308', // 노란색
+                '#ef4444', // 빨간색
+                '#3b82f6', // 파란색
+                '#14b8a6', // 청록색
+                '#a855f7', // 보라색2
+            ];
+            return colors[index % colors.length];
+        };
+
         // 결제수단 상세 보기
         const showPaymentMethodDetail = async (paymentMethod) => {
             selectedPaymentMethod.value = paymentMethod;
@@ -1406,6 +1600,127 @@ export default {
         const closePaymentMethodDetail = () => {
             selectedPaymentMethod.value = null;
             paymentMethodAccounts.value = [];
+        };
+
+        // 정렬된 사용자
+        const sortedUsers = computed(() => {
+            if (!statistics.value?.users) return [];
+
+            const users = [...statistics.value.users];
+            return users.sort((a, b) => {
+                return userSortOrder.value === 'desc'
+                    ? b.total_amount - a.total_amount
+                    : a.total_amount - b.total_amount;
+            });
+        });
+
+        // 사용자 차트 데이터
+        const userChartData = computed(() => {
+            if (!statistics.value?.users || statistics.value.users.length === 0) {
+                return {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderWidth: 0
+                    }]
+                };
+            }
+
+            const colors = statistics.value.users.map((_, index) => getUserColor(index));
+
+            return {
+                labels: statistics.value.users.map(item => item.user_name),
+                datasets: [{
+                    data: statistics.value.users.map(item => item.total_amount),
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            };
+        });
+
+        // 사용자 차트 옵션
+        const userChartOptions = computed(() => {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${label}: ${formatMoney(value)}원 (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            };
+        });
+
+        // 사용자 정렬 순서 토글
+        const toggleUserSortOrder = () => {
+            userSortOrder.value = userSortOrder.value === 'desc' ? 'asc' : 'desc';
+        };
+
+        // 사용자 상세 보기
+        const showUserDetail = async (user) => {
+            selectedUserDetail.value = user;
+            loadingUserAccounts.value = true;
+
+            try {
+                const params = {
+                    user_name: user.user_name,
+                    type: selectedPeriod.value,
+                };
+
+                // 개별 기간 선택 파라미터 추가
+                if (selectedPeriod.value === 'year' && selectedYear.value) {
+                    params.year = selectedYear.value;
+                } else if (selectedPeriod.value === 'month' && selectedYear.value && selectedMonth.value) {
+                    params.year = selectedYear.value;
+                    params.month = selectedMonth.value;
+                } else if (selectedPeriod.value === 'week' && selectedYear.value && selectedWeek.value) {
+                    params.year = selectedYear.value;
+                    params.week = selectedWeek.value;
+                } else if (selectedPeriod.value === 'custom') {
+                    params.start_date = customStartDate.value;
+                    params.end_date = customEndDate.value;
+                }
+
+                const response = await api.get('/statistics/user-accounts', params);
+                userAccounts.value = response.data.accounts || [];
+
+                // 지출 내역 섹션으로 스크롤
+                setTimeout(() => {
+                    const element = document.getElementById('user-detail');
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('사용자별 지출 내역 조회 오류:', error);
+                ElMessage.error('사용자별 지출 내역 조회 중 오류가 발생했습니다');
+                userAccounts.value = [];
+            } finally {
+                loadingUserAccounts.value = false;
+            }
+        };
+
+        // 사용자 상세 닫기
+        const closeUserDetail = () => {
+            selectedUserDetail.value = null;
+            userAccounts.value = [];
         };
 
         // 키워드 정렬 순서 토글
@@ -1606,6 +1921,15 @@ export default {
             paymentMethodAccounts,
             loadingPaymentMethodAccounts,
 
+            // 사용자 관련
+            userSortOrder,
+            sortedUsers,
+            userChartData,
+            userChartOptions,
+            selectedUserDetail,
+            userAccounts,
+            loadingUserAccounts,
+
             // 새로운 computed 속성들
             availableYears,
             availableMonths,
@@ -1631,17 +1955,21 @@ export default {
 
             toggleSortOrder,
             togglePaymentMethodSortOrder,
+            toggleUserSortOrder,
             toggleKeywordSortOrder,
             showCategoryDetail,
             showExpenseTypeCategoryDetail,
             showPaymentMethodDetail,
+            showUserDetail,
             closeKeywordDetail,
             closePaymentMethodDetail,
+            closeUserDetail,
             handleChartClick,
             handleExpenseTypeChartClick,
             openExportData,
             getCategoryColor,
             getPaymentMethodColor,
+            getUserColor,
 
             // 아이콘들
             TrendingUp,
@@ -1658,6 +1986,61 @@ export default {
 </script>
 
 <style scoped>
+/* 차트 유형 선택 버튼 */
+.chart-type-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    min-height: 80px;
+    background-color: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.chart-type-button:hover {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.chart-type-button.active {
+    border-color: #3b82f6;
+    background-color: #3b82f6;
+    color: white;
+    font-weight: 600;
+}
+
+.chart-type-button.active:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+.chart-type-button:active {
+    transform: translateY(0);
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+    .chart-type-button {
+        min-height: 70px;
+        padding: 0.75rem;
+    }
+
+    .chart-type-button span.text-2xl {
+        font-size: 1.5rem;
+    }
+
+    .chart-type-button span.text-sm {
+        font-size: 0.75rem;
+    }
+}
+
 .chart-container {
     height: 300px;
     position: relative;

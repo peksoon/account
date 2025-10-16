@@ -374,3 +374,35 @@ func (db *DB) GetPaymentMethodCategoryStatistics(paymentMethodID int, startDate,
 
 	return statistics, nil
 }
+
+// GetUserStatistics 사용자별 통계 조회 (지출만)
+func (db *DB) GetUserStatistics(startDate, endDate string) ([]models.UserStatistics, error) {
+	query := `
+	SELECT 
+		oa.user,
+		COALESCE(SUM(oa.money), 0) as total_amount,
+		COALESCE(COUNT(oa.uuid), 0) as count
+	FROM out_account_data oa
+	WHERE date(oa.date) >= ? AND date(oa.date) <= ?
+	GROUP BY oa.user
+	HAVING total_amount > 0
+	ORDER BY total_amount DESC`
+
+	rows, err := db.Conn.Query(query, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("사용자별 통계 조회 오류: %v", err)
+	}
+	defer rows.Close()
+
+	var statistics []models.UserStatistics
+	for rows.Next() {
+		var stat models.UserStatistics
+		err := rows.Scan(&stat.UserName, &stat.TotalAmount, &stat.Count)
+		if err != nil {
+			return nil, fmt.Errorf("사용자별 통계 데이터 읽기 오류: %v", err)
+		}
+		statistics = append(statistics, stat)
+	}
+
+	return statistics, nil
+}

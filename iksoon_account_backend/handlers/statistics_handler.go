@@ -21,6 +21,7 @@ type StatisticsRepository interface {
 	GetAllBudgetUsages(userName string, currentDate time.Time) ([]models.BudgetUsage, error)
 	GetPaymentMethodStatistics(startDate, endDate string) ([]models.PaymentMethodStatistics, error)
 	GetPaymentMethodCategoryStatistics(paymentMethodID int, startDate, endDate string) ([]models.CategoryStatistics, error)
+	GetUserStatistics(startDate, endDate string) ([]models.UserStatistics, error)
 }
 
 // 통계 조회 핸들러
@@ -113,6 +114,24 @@ func (h *StatisticsHandler) GetStatisticsHandler(w http.ResponseWriter, r *http.
 		}
 	}
 
+	// 사용자별 통계 조회 (지출 통계인 경우에만)
+	var users []models.UserStatistics
+	if accountType == "out" {
+		users, err = h.DB.GetUserStatistics(calculatedStartDate, calculatedEndDate)
+		if err != nil {
+			utils.LogError("사용자별 통계 조회", err)
+			// 사용자 통계 조회 오류는 무시하고 계속 진행
+			users = nil
+		} else {
+			// 퍼센테지 계산
+			for i := range users {
+				if totalAmount > 0 {
+					users[i].Percentage = float64(users[i].TotalAmount) / float64(totalAmount) * 100
+				}
+			}
+		}
+	}
+
 	response := models.StatisticsResponse{
 		Period:         period,
 		TotalAmount:    totalAmount,
@@ -122,6 +141,7 @@ func (h *StatisticsHandler) GetStatisticsHandler(w http.ResponseWriter, r *http.
 		ChartData:      chartData,
 		BudgetUsages:   budgetUsages,
 		PaymentMethods: paymentMethods,
+		Users:          users,
 	}
 
 	utils.SendSuccessResponse(w, response)

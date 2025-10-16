@@ -130,6 +130,14 @@ type PaymentMethodStatistics struct {
 	Count             int     `json:"count"`
 }
 
+// UserStatistics 구조체 - 사용자별 통계
+type UserStatistics struct {
+	UserName    string  `json:"user_name"`
+	TotalAmount int     `json:"total_amount"`
+	Percentage  float64 `json:"percentage"`
+	Count       int     `json:"count"`
+}
+
 // StatisticsResponse 구조체 - 통계 응답 (기준치 정보 포함)
 type StatisticsResponse struct {
 	Period         string                    `json:"period"`
@@ -140,6 +148,7 @@ type StatisticsResponse struct {
 	ChartData      []ChartData               `json:"chart_data"`
 	BudgetUsages   []BudgetUsage             `json:"budget_usages,omitempty"`   // 기준치 사용량 정보
 	PaymentMethods []PaymentMethodStatistics `json:"payment_methods,omitempty"` // 결제수단 통계
+	Users          []UserStatistics          `json:"users,omitempty"`           // 사용자별 통계
 }
 
 // ChartData 구조체 - 차트 데이터
