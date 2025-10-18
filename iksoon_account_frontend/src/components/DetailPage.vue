@@ -274,6 +274,7 @@ import {
     FileText
 } from 'lucide-vue-next';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useAccountStore } from '../stores/accountStore';
 import { useCategoryStore } from '../stores/categoryStore';
 import { usePaymentMethodStore } from '../stores/paymentMethodStore';
 import { useDepositPathStore } from '../stores/depositPathStore';
@@ -298,6 +299,7 @@ export default {
         const isEditMode = ref(false);
 
         // Stores
+        const accountStore = useAccountStore();
         const categoryStore = useCategoryStore();
         const paymentMethodStore = usePaymentMethodStore();
         const depositPathStore = useDepositPathStore();
@@ -378,22 +380,22 @@ export default {
 
                 console.log('DetailPage에서 업데이트 이벤트 발생:', accountData);
 
-                // TODO: 여기서 실제 업데이트 API 호출
-                // await accountStore.updateAccount(accountData);
-
-                // 약간의 지연 후 편집 모드 종료 (비동기 업데이트 완료 대기)
-                await new Promise(resolve => setTimeout(resolve, 100));
+                // 실제 업데이트 API 호출
+                await accountStore.updateAccount(accountData);
 
                 // 컴포넌트가 여전히 마운트된 상태인지 확인
                 if (isEditMode.value !== undefined) {
                     isEditMode.value = false;
                     ElMessage.success('데이터가 성공적으로 업데이트되었습니다.');
+
+                    // 업데이트된 데이터로 로컬 상태 갱신
+                    localEventDetail.value = { ...accountData };
                 }
 
             } catch (error) {
-                console.error('Form validation failed:', error);
+                console.error('업데이트 실패:', error);
                 if (isEditMode.value !== undefined) {
-                    ElMessage.error('입력 정보를 확인해주세요.');
+                    ElMessage.error('데이터 업데이트 중 오류가 발생했습니다.');
                 }
             } finally {
                 if (updating.value !== undefined) {
@@ -416,14 +418,20 @@ export default {
                     }
                 );
 
-                // TODO: 실제 삭제 API 호출
+                // 실제 삭제 API 호출
+                await accountStore.deleteAccount(localEventDetail.value);
+
                 ElMessage.success('데이터가 삭제되었습니다.');
 
                 // 삭제 후 메인 페이지로 이동
                 goBack();
 
-            } catch {
-                // 사용자가 취소함
+            } catch (error) {
+                // 사용자가 취소했거나 오류 발생
+                if (error !== 'cancel') {
+                    console.error('삭제 실패:', error);
+                    ElMessage.error('데이터 삭제 중 오류가 발생했습니다.');
+                }
             }
         };
 
